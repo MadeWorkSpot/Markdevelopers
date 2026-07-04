@@ -4,6 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Mark Developers | Coming Soon",
   description: "Premium building construction services — launching soon.",
+  icons: "/markDevelopersLogo.png",
 };
 
 export default function RootLayout({
