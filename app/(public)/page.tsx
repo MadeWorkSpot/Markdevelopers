@@ -1,8 +1,16 @@
+import HeroSection from "@/components/HeroSection";
+import { AboutSection, ServicesSection, ProjectsSection, ContactSection } from "@/components/Sections";
+
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
-    <section>
-      <h1>Coming Soon</h1>
-      <p>Mark Developers</p>
-    </section>
+    <>
+      <HeroSection />
+      <AboutSection />
+      <ServicesSection />
+      <ProjectsSection />
+      <ContactSection />
+    </>
   );
 }

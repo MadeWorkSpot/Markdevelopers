@@ -37,18 +37,28 @@ export function proxy(request: NextRequest) {
   }
 
   // ── Admin host (admin.example.com / admin.localhost:3000) ───
+  const protocol = request.nextUrl.protocol;
+  const adminHost = `${ADMIN_PREFIX}${PUBLIC_HOST}`;
 
   // Block any non-admin path (catches /, /about, /contact, etc.)
   if (!pathname.startsWith("/admin")) {
-    return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    return NextResponse.redirect(
+      new URL("/admin/dashboard", `${protocol}//${adminHost}`)
+    );
   }
 
-  // Auth guard – protect all /admin/* routes except /admin/login
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+  // Auth guard – protect all /admin/* routes except login/signup/verify
+  if (
+    pathname.startsWith("/admin") &&
+    pathname !== "/admin/login" &&
+    pathname !== "/admin/signup" &&
+    !pathname.startsWith("/admin/verify-email")
+  ) {
     const session = request.cookies.get("session");
     if (!session?.value) {
-      const loginUrl = new URL("/admin/login", request.url);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(
+        new URL("/admin/login", `${protocol}//${adminHost}`)
+      );
     }
   }
 

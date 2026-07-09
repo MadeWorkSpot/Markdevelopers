@@ -1,6 +1,6 @@
-import { LoginForm } from "./login-form";
+import { SignupForm } from "./signup-form";
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-950">
       <div className="w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-900 p-8 shadow-xl">
@@ -8,10 +8,10 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
             <span className="text-lg font-bold text-white">M</span>
           </div>
-          <h1 className="text-xl font-medium text-white">Admin Login</h1>
+          <h1 className="text-xl font-medium text-white">Admin Sign Up</h1>
           <p className="mt-1 text-sm text-zinc-500">Mark Developers</p>
         </div>
-        <LoginForm />
+        <SignupForm />
       </div>
     </div>
   );
