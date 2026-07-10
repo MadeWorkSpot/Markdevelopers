@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { readData } from "@/lib/data";
 import { slugify } from "@/lib/slugify";
 
-const BASE_URL = "https://markdevelopers.com";
+const BASE_URL = "https://markdevelopers.in";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
