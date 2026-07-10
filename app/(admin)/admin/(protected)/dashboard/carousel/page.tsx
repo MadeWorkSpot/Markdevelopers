@@ -1,6 +1,6 @@
 import ContentManager from "@/components/admin/ContentManager";
 import { readData } from "@/lib/data";
-import { addArrayItem, updateArrayItem, deleteArrayItem } from "@/actions";
+import { addArrayItem, updateArrayItem, deleteArrayItem, reorderArray } from "@/actions";
 
 export default async function CarouselPage() {
   const data = await readData<{ slides: Record<string, unknown>[] }>("carousel");
@@ -18,6 +18,7 @@ export default async function CarouselPage() {
       onSave={updateArrayItem.bind(null, "carousel", "slides")}
       onAdd={addArrayItem.bind(null, "carousel", "slides")}
       onDelete={deleteArrayItem.bind(null, "carousel", "slides")}
+      onReorder={reorderArray.bind(null, "carousel", "slides")}
     />
   );
 }

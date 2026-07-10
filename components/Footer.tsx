@@ -36,12 +36,12 @@ export default async function Footer() {
               className="mb-5 h-auto w-[130px] brightness-0 invert"
             />
             <p className="max-w-sm text-sm leading-relaxed text-white/60">
-              {site.footerTagline}
+              {site.footerTagline ?? ""}
             </p>
           </div>
 
           <div>
-            <h3 className="mb-5 text-sm font-semibold tracking-wider uppercase text-white/50">{site.footerQuickLinksHeading}</h3>
+            <h3 className="mb-5 text-sm font-semibold tracking-wider uppercase text-white/50">{site.footerQuickLinksHeading ?? ""}</h3>
             <div className="flex flex-col gap-3">
               {quickLinks.map((link) => (
                 <Link key={link.href} href={link.href} className="text-sm text-white/60 transition-colors hover:text-white">{link.label}</Link>
@@ -50,10 +50,10 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-5 text-sm font-semibold tracking-wider uppercase text-white/50">{site.footerContactHeading}</h3>
+            <h3 className="mb-5 text-sm font-semibold tracking-wider uppercase text-white/50">{site.footerContactHeading ?? ""}</h3>
             <div className="flex flex-col gap-3 text-sm text-white/60">
-              <p>{contact.email}</p>
-              <p>{contact.phone}</p>
+              <p>{contact.email ?? ""}</p>
+              <p>{contact.phone ?? ""}</p>
               {(contact.address ?? "").split(",").map((line, i) => (
                 <p key={i}>{line.trim()}</p>
               ))}
@@ -62,7 +62,7 @@ export default async function Footer() {
         </div>
 
         <div className="mt-12 border-t border-white/20 pt-6 text-center text-xs text-white/50">
-          &copy; {new Date().getFullYear()} {site.footerCopyright}
+          &copy; {new Date().getFullYear()} {site.footerCopyright ?? ""}
         </div>
       </div>
     </footer>

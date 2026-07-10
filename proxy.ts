@@ -52,6 +52,8 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/admin") &&
     pathname !== "/admin/login" &&
     pathname !== "/admin/signup" &&
+    pathname !== "/admin/forgot-password" &&
+    !pathname.startsWith("/admin/reset-password") &&
     !pathname.startsWith("/admin/verify-email")
   ) {
     const session = request.cookies.get("session");

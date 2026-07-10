@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
+import { slugify } from "@/lib/slugify";
 
 export type Project = {
   title: string;
-  location: string;
+  subtitle: string;
   image: string;
 };
 
@@ -27,6 +28,9 @@ export default function ProjectsCarousel({
 }) {
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(3);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isSwiping = useRef(false);
 
   useEffect(() => {
     const onResize = () => setVisible(getVisibleCards());
@@ -40,6 +44,28 @@ export default function ProjectsCarousel({
 
   const prev = useCallback(() => setIdx((i) => Math.max(0, i - 1)), []);
   const next = useCallback(() => setIdx((i) => Math.min(maxIdx, i + 1)), [maxIdx]);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isSwiping.current = false;
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (!isSwiping.current && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+      isSwiping.current = true;
+    }
+  }, []);
+
+  const onTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!isSwiping.current) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (dx < -50) next();
+    else if (dx > 50) prev();
+    isSwiping.current = false;
+  }, [next, prev]);
 
   const atStart = idx === 0;
   const atEnd = idx >= maxIdx;
@@ -56,7 +82,12 @@ export default function ProjectsCarousel({
       </h2>
 
       <div className="relative mt-14">
-        <div className="overflow-hidden">
+        <div
+          className="overflow-hidden"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           <div
             className="flex transition-transform duration-500 ease-in-out"
             style={{ transform: `translateX(-${idx * (100 / visible)}%)` }}
@@ -66,7 +97,7 @@ export default function ProjectsCarousel({
                 key={p.title}
                 className="min-w-0 shrink-0 grow-0 basis-full sm:basis-1/2 lg:basis-1/3 px-4"
               >
-                <div className="group cursor-pointer">
+                <Link href={`/projects/${slugify(p.title)}`} className="group block cursor-pointer">
                   <div className="aspect-[4/3] overflow-hidden">
                     {p.image && (
                       <img
@@ -77,10 +108,12 @@ export default function ProjectsCarousel({
                     )}
                   </div>
                   <div className="mt-5">
-                    <h3 className="text-lg font-medium text-black">{p.title}</h3>
-                    <p className="mt-1 text-base text-black/60">{p.location}</p>
+                    <h3 className="text-base font-medium text-black sm:text-lg">{p.title}</h3>
+                    {p.subtitle && (
+                      <p className="mt-1 text-base text-black/60">{p.subtitle}</p>
+                    )}
                   </div>
-                </div>
+                </Link>
               </div>
             ))}
             <div className="min-w-0 shrink-0 grow-0 basis-full sm:basis-1/2 lg:basis-1/3 px-4">

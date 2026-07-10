@@ -13,11 +13,12 @@ export function VerifyForm({ email }: { email: string }) {
     e.preventDefault();
     setPending(true);
     setError(null);
+    setMessage(null);
 
     const form = new FormData(e.currentTarget);
     form.set("email", email);
 
-    const result = await verifyOtp(form);
+    const result = await verifyOtp(null, form);
     if (result?.error) setError(result.error);
     setPending(false);
   }

@@ -1,6 +1,8 @@
 import { readData } from "@/lib/data";
+import { slugify } from "@/lib/slugify";
+import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Projects | Mark Developers",
@@ -11,7 +13,7 @@ export default async function ProjectsPage() {
   const data = await readData<{
     pageHeading: string;
     pageSubtitle: string;
-    projects: { title: string; location: string; desc: string; image: string }[];
+    projects: { title: string; subtitle: string; description: string; image: string }[];
   }>("projects");
 
   const headingParts = (data.pageHeading ?? "").split(" ");
@@ -25,12 +27,16 @@ export default async function ProjectsPage() {
           {firstWords}{" "}
           <span className="font-medium">{lastWord}</span>
         </h1>
-        <p className="mt-4 max-w-3xl text-lg leading-relaxed text-black/60 sm:text-xl">
+        <p className="mt-4 max-w-3xl text-lg leading-snug text-black/60 sm:text-xl">
           {data.pageSubtitle ?? ""}
         </p>
-        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 md:mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {(data.projects ?? []).map((p) => (
-            <div key={p.title} className="group cursor-pointer">
+            <Link
+              key={p.title}
+              href={`/projects/${slugify(p.title)}`}
+              className="group cursor-pointer"
+            >
               <div className="aspect-[4/3] overflow-hidden">
                 {p.image && (
                   <img
@@ -41,11 +47,21 @@ export default async function ProjectsPage() {
                 )}
               </div>
               <div className="mt-5">
-                <h2 className="text-xl font-medium text-black">{p.title}</h2>
-                <p className="mt-1 text-base text-black/60">{p.location}</p>
-                <p className="mt-3 text-sm leading-relaxed text-black/60">{p.desc ?? ""}</p>
+                <h2 className="text-lg font-medium text-black sm:text-xl">{p.title}</h2>
+                {p.subtitle && (
+                  <p className="mt-1 text-base text-black/60">{p.subtitle}</p>
+                )}
+                {p.description && (
+                  <p className="mt-3 text-sm leading-relaxed text-black/60 line-clamp-1">{p.description}</p>
+                )}
+                <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-black/40 transition-colors group-hover:text-black">
+                  View Project
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-3 w-3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

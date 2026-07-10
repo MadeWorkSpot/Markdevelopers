@@ -28,7 +28,7 @@ export default async function NotificationsPage() {
       <MarkRead />
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-white">Notifications</h1>
+          <h1 className="text-xl font-medium text-white sm:text-2xl">Notifications</h1>
           <p className="mt-1 text-sm text-zinc-400">
             {messages.length} message{messages.length !== 1 ? "s" : ""}
           </p>

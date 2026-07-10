@@ -1,7 +1,7 @@
 import ContentManager from "@/components/admin/ContentManager";
 import PageTextEditor from "@/components/admin/PageTextEditor";
 import { readData } from "@/lib/data";
-import { addArrayItem, updateArrayItem, deleteArrayItem } from "@/actions";
+import { addArrayItem, updateArrayItem, deleteArrayItem, reorderArray } from "@/actions";
 
 export default async function GalleryPage() {
   const data = await readData<{ images: Record<string, unknown>[] }>("gallery");
@@ -27,6 +27,7 @@ export default async function GalleryPage() {
         onSave={updateArrayItem.bind(null, "gallery", "images")}
         onAdd={addArrayItem.bind(null, "gallery", "images")}
         onDelete={deleteArrayItem.bind(null, "gallery", "images")}
+        onReorder={reorderArray.bind(null, "gallery", "images")}
       />
     </>
   );

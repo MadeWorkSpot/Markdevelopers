@@ -52,7 +52,7 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-medium text-white">About Page</h1>
+        <h1 className="text-xl font-medium text-white sm:text-2xl">About Page</h1>
         <button
           onClick={handleSave}
           disabled={saving}

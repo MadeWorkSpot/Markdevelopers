@@ -1,6 +1,6 @@
 import { readData } from "@/lib/data";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Gallery | Mark Developers",
@@ -20,16 +20,16 @@ export default async function GalleryPage() {
   const lastWord = headingParts[headingParts.length - 1] ?? "";
 
   return (
-    <section className="bg-black px-4 py-24 pt-36 md:px-8 lg:px-12 xl:px-24">
+    <section className="bg-black px-4 py-16 pt-36 md:px-8 lg:px-12 xl:px-24">
       <div className="mx-auto max-w-full">
-        <h1 className="mt-4 text-5xl font-light leading-tight text-white sm:text-6xl">
-          {firstWords}
-          <span className="block font-medium">{lastWord}</span>
+        <h1 className="mt-4 text-5xl font-light leading-tight text-white md:text-6xl">
+          {firstWords} {" "}
+          <span className="font-medium">{lastWord}</span>
         </h1>
-        <p className="mt-8 max-w-3xl text-lg leading-relaxed text-white/60 sm:text-xl">
+        <p className="mt-4 md:mt-8 max-w-3xl text-lg leading-snug text-white/60 sm:text-xl">
           {data.pageSubtitle ?? ""}
         </p>
-        <div className="mt-16 columns-1 gap-6 sm:columns-2 lg:columns-3">
+        <div className="mt-4 md:mt-8 columns-1 gap-6 sm:columns-2 lg:columns-3">
           {(data.images ?? []).map((img, i) => (
             <div key={i} className="group mb-6 break-inside-avoid overflow-hidden">
               {img.src && (

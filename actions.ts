@@ -3,9 +3,26 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { randomInt } from "crypto";
 import { readData, writeData } from "@/lib/data";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { sendOtpEmail } from "@/lib/email";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+function generateOtp(): string {
+  return randomInt(100000, 999999).toString();
+}
+
+async function requireAdmin() {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("session")?.value;
+  if (!sessionCookie) throw new Error("Unauthorized");
+  try {
+    await adminAuth.verifySessionCookie(sessionCookie, true);
+  } catch {
+    throw new Error("Unauthorized");
+  }
+}
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
@@ -13,8 +30,19 @@ export async function login(_prev: unknown, formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
+  if (!email || !password) {
+    return { error: "Email and password are required." };
+  }
+
+  const rl = checkRateLimit(`login:${email}`);
+  if (!rl.allowed) {
+    return { error: `Too many attempts. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
+  }
+
   try {
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    if (!apiKey) return { error: "Configuration error. Please try again later." };
+
     const res = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
       {
@@ -61,10 +89,17 @@ export async function login(_prev: unknown, formData: FormData) {
   redirect("/admin/dashboard");
 }
 
-export async function signup(formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
+export async function signup(_prev: unknown, formData: FormData) {
+  const name = (formData.get("name") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
+
+  if (!name || !email || !password) {
+    return { error: "All fields are required." };
+  }
+  if (password.length < 6) {
+    return { error: "Password must be at least 6 characters." };
+  }
 
   try {
     const user = await adminAuth.createUser({
@@ -81,7 +116,7 @@ export async function signup(formData: FormData) {
       updatedAt: Date.now(),
     });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateOtp();
 
     await adminDb.collection("otps").doc(email).set({
       code: otp,
@@ -92,9 +127,9 @@ export async function signup(formData: FormData) {
 
     const sent = await sendOtpEmail(email, otp);
     if (!sent) {
-      await adminAuth.deleteUser(user.uid);
-      await adminDb.collection("otps").doc(email).delete();
-      await adminDb.collection("users").doc(user.uid).delete();
+      try { await adminAuth.deleteUser(user.uid); } catch { /* best effort */ }
+      try { await adminDb.collection("otps").doc(email).delete(); } catch { /* best effort */ }
+      try { await adminDb.collection("users").doc(user.uid).delete(); } catch { /* best effort */ }
       return {
         error:
           "Failed to send verification email. Please check your email address and try again.",
@@ -114,70 +149,165 @@ export async function signup(formData: FormData) {
   );
 }
 
-export async function verifyOtp(formData: FormData) {
+export async function verifyOtp(_prev: unknown, formData: FormData) {
   const email = formData.get("email") as string;
   const code = formData.get("code") as string;
 
-  const otpDoc = await adminDb.collection("otps").doc(email).get();
-  if (!otpDoc.exists) {
-    return {
-      error: "No verification code found. Please sign up again.",
-    };
+  if (!email || !code) {
+    return { error: "Email and code are required." };
   }
 
-  const otpData = otpDoc.data()!;
-  if (otpData.code !== code) {
-    return { error: "Invalid verification code." };
+  const rl = checkRateLimit(`verify:${email}`);
+  if (!rl.allowed) {
+    return { error: `Too many attempts. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
   }
 
-  if (Date.now() > otpData.expiresAt) {
+  try {
+    const otpDoc = await adminDb.collection("otps").doc(email).get();
+    if (!otpDoc.exists) {
+      return {
+        error: "No verification code found. Please sign up again.",
+      };
+    }
+
+    const otpData = otpDoc.data()!;
+    if (otpData.code !== code) {
+      return { error: "Invalid verification code." };
+    }
+
+    if (Date.now() > otpData.expiresAt) {
+      await adminDb.collection("otps").doc(email).delete();
+      return { error: "Code expired. Click resend for a new one." };
+    }
+
+    await adminAuth.updateUser(otpData.uid, {
+      disabled: false,
+      emailVerified: true,
+    });
+
     await adminDb.collection("otps").doc(email).delete();
-    return { error: "Code expired. Click resend for a new one." };
+  } catch {
+    return { error: "Verification failed. Please try again." };
   }
-
-  await adminAuth.updateUser(otpData.uid, {
-    disabled: false,
-    emailVerified: true,
-  });
-
-  await adminDb.collection("otps").doc(email).delete();
 
   redirect("/admin/login");
 }
 
 export async function resendOtp(email: string) {
-  const otpDoc = await adminDb.collection("otps").doc(email).get();
-  if (!otpDoc.exists) {
-    return { error: "No pending verification found. Please sign up again." };
+  if (!email) return { error: "Email is required." };
+
+  const rl = checkRateLimit(`resend:${email}`);
+  if (!rl.allowed) {
+    return { error: `Too many attempts. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  try {
+    const otpDoc = await adminDb.collection("otps").doc(email).get();
+    if (!otpDoc.exists) {
+      return { error: "No pending verification found. Please sign up again." };
+    }
 
-  await adminDb.collection("otps").doc(email).update({
-    code: otp,
-    expiresAt: Date.now() + 10 * 60 * 1000,
-  });
+    const otp = generateOtp();
 
-  const sent = await sendOtpEmail(email, otp);
-  if (!sent) {
-    return { error: "Failed to send email. Please try again." };
+    await adminDb.collection("otps").doc(email).update({
+      code: otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    const sent = await sendOtpEmail(email, otp);
+    if (!sent) {
+      return { error: "Failed to send email. Please try again." };
+    }
+
+    return { success: true };
+  } catch {
+    return { error: "Failed to resend code. Please try again." };
+  }
+}
+
+export async function forgotPassword(_prev: unknown, formData: FormData) {
+  const email = (formData.get("email") as string)?.trim();
+  if (!email) return { error: "Email is required." };
+
+  const rl = checkRateLimit(`forgot:${email}`);
+  if (!rl.allowed) {
+    return { error: `Too many attempts. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
+  }
+
+  try {
+    const user = await adminAuth.getUserByEmail(email);
+    const otp = generateOtp();
+
+    await adminDb.collection("password_resets").doc(email).set({
+      code: otp,
+      uid: user.uid,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      createdAt: Date.now(),
+    });
+
+    const sent = await sendOtpEmail(email, otp);
+    if (!sent) {
+      return { error: "Failed to send email. Please try again." };
+    }
+
+    return { success: true, email };
+  } catch {
+    return { error: "No account found with this email." };
+  }
+}
+
+export async function resetPassword(_prev: unknown, formData: FormData) {
+  const email = (formData.get("email") as string)?.trim();
+  const code = (formData.get("code") as string)?.trim();
+  const password = formData.get("password") as string;
+
+  if (!email || !code || !password) {
+    return { error: "All fields are required." };
+  }
+  if (password.length < 6) {
+    return { error: "Password must be at least 6 characters." };
+  }
+
+  try {
+    const resetDoc = await adminDb.collection("password_resets").doc(email).get();
+    if (!resetDoc.exists) {
+      return { error: "No reset request found. Please try again." };
+    }
+
+    const resetData = resetDoc.data()!;
+    if (resetData.code !== code) {
+      return { error: "Invalid verification code." };
+    }
+    if (Date.now() > resetData.expiresAt) {
+      await adminDb.collection("password_resets").doc(email).delete();
+      return { error: "Code expired. Please request a new one." };
+    }
+
+    await adminAuth.updateUser(resetData.uid, { password });
+    await adminDb.collection("password_resets").doc(email).delete();
+  } catch {
+    return { error: "Password reset failed. Please try again." };
   }
 
   return { success: true };
 }
 
 export async function logout() {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get("session")?.value;
-  if (sessionCookie) {
-    try {
-      const decoded = await adminAuth.verifySessionCookie(sessionCookie);
-      await adminAuth.revokeRefreshTokens(decoded.sub);
-    } catch {
-      // session already invalid
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("session")?.value;
+    if (sessionCookie) {
+      try {
+        const decoded = await adminAuth.verifySessionCookie(sessionCookie);
+        await adminAuth.revokeRefreshTokens(decoded.sub);
+      } catch {
+        // session already invalid
+      }
     }
+    cookieStore.delete("session");
+  } catch {
+    // proceed with redirect even if cookie cleanup fails
   }
-  cookieStore.delete("session");
   redirect("/admin/login");
 }
 
@@ -208,15 +338,21 @@ export async function submitContact(_prev: unknown, formData: FormData) {
 }
 
 export async function getUnreadCount() {
-  const snapshot = await adminDb
-    .collection("messages")
-    .where("isRead", "==", false)
-    .count()
-    .get();
-  return snapshot.data().count;
+  try {
+    await requireAdmin();
+    const snapshot = await adminDb
+      .collection("messages")
+      .where("isRead", "==", false)
+      .count()
+      .get();
+    return snapshot.data().count;
+  } catch {
+    return 0;
+  }
 }
 
 export async function markMessagesAsRead() {
+  await requireAdmin();
   const snapshot = await adminDb
     .collection("messages")
     .where("isRead", "==", false)
@@ -233,6 +369,7 @@ export async function markMessagesAsRead() {
 }
 
 export async function saveContent(type: string, data: unknown) {
+  await requireAdmin();
   const existing = await readData<Record<string, unknown>>(type);
   const merged = {
     ...existing,
@@ -247,6 +384,7 @@ export async function addArrayItem(
   key: string,
   item: Record<string, unknown>
 ) {
+  await requireAdmin();
   const data = await readData<Record<string, unknown>>(type);
   const arr = (data[key] as unknown[]) ?? [];
   (data as Record<string, unknown>)[key] = [...arr, item];
@@ -260,6 +398,7 @@ export async function updateArrayItem(
   index: number,
   item: Record<string, unknown>
 ) {
+  await requireAdmin();
   const data = await readData<Record<string, unknown[]>>(type);
   const arr = data[key] ?? [];
   arr[index] = item as never;
@@ -269,6 +408,7 @@ export async function updateArrayItem(
 }
 
 export async function deleteMessage(messageId: string) {
+  await requireAdmin();
   await adminDb.collection("messages").doc(messageId).delete();
   revalidatePath("/admin/dashboard/notifications");
 }
@@ -278,8 +418,25 @@ export async function deleteArrayItem(
   key: string,
   index: number
 ) {
+  await requireAdmin();
   const data = await readData<Record<string, unknown[]>>(type);
   data[key] = (data[key] ?? []).filter((_, i) => i !== index);
+  await writeData(type, data);
+  return { success: true };
+}
+
+export async function reorderArray(
+  type: string,
+  key: string,
+  fromIndex: number,
+  toIndex: number
+) {
+  await requireAdmin();
+  const data = await readData<Record<string, unknown[]>>(type);
+  const arr = [...(data[key] ?? [])];
+  const [item] = arr.splice(fromIndex, 1);
+  arr.splice(toIndex, 0, item);
+  (data as Record<string, unknown>)[key] = arr;
   await writeData(type, data);
   return { success: true };
 }

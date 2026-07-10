@@ -30,7 +30,7 @@ export function SignupForm() {
       return;
     }
 
-    const result = await signup(form);
+    const result = await signup(null, form);
     if (result?.error) setError(result.error);
     setPending(false);
   }

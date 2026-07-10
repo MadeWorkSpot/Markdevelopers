@@ -25,7 +25,7 @@ function ImageCarouselInner({ slides = [] }: { slides?: Slide[] }) {
   const busy = useRef(false);
 
   const slide = useCallback((dir: 1 | -1) => {
-    if (busy.current) return;
+    if (busy.current || slides.length < 2) return;
     const target = (idx.current + dir + slides.length) % slides.length;
     if (target === idx.current) return;
     busy.current = true;
@@ -58,6 +58,7 @@ function ImageCarouselInner({ slides = [] }: { slides?: Slide[] }) {
   const slideRight = useCallback(() => { slide(1); }, [slide]);
 
   useEffect(() => {
+    if (slides.length === 0) return;
     const currentEls = els.current;
     currentEls.length = slides.length;
     currentEls.forEach((el, i) => gsap.set(el, { xPercent: i === 0 ? 0 : 100 }));
@@ -97,20 +98,20 @@ function ImageCarouselInner({ slides = [] }: { slides?: Slide[] }) {
           <div className="absolute inset-0 bg-black/60" />
           <div className="absolute inset-0 z-10 flex items-center px-4 md:px-8 lg:px-16 xl:px-16">
             <div className="max-w-7xl">
-              <p className="text-start text-2xl font-light leading-snug tracking-wide text-white sm:text-3xl md:text-4xl lg:text-5xl">
+              <p className="text-start text-3xl font-light leading-tight tracking-wide text-white sm:text-3xl md:text-4xl lg:text-5xl">
                 {s.subtitle}
               </p>
               {s.href?.startsWith("/#") ? (
                 <button
                   onClick={() => scrollTo(s.href.slice(2))}
-                  className="mt-6 inline-block rounded-full border border-white px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition-colors hover:bg-white hover:text-black"
+                  className=" mt-2 md:mt-4 lg:mt-6 inline-block rounded-full border border-white px-6 py-3 text-xs md:text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-white hover:text-black"
                 >
                   {s.label}
                 </button>
               ) : (
                 <Link
                   href={s.href}
-                  className="mt-6 inline-block rounded-full border border-white px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition-colors hover:bg-white hover:text-black"
+                  className="mt-2 md:mt-4 lg:mt-6 inline-block rounded-full border border-white px-6 py-3 text-xs md:text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-white hover:text-black"
                 >
                   {s.label}
                 </Link>
@@ -120,25 +121,29 @@ function ImageCarouselInner({ slides = [] }: { slides?: Slide[] }) {
         </div>
       ))}
 
+      {slides.length > 0 && (
       <button
         onClick={() => onManual(slideLeft)}
-        className="absolute left-2 top-1/2 z-20 -translate-y-1/2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:left-4 sm:h-12 sm:w-12"
+        className="absolute left-2 top-1/2 z-20 -translate-y-1/2 hidden sm:flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:left-4 sm:h-12 sm:w-12"
         aria-label="Slide left"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-5 w-5 sm:h-6 sm:w-6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
         </svg>
       </button>
+      )}
 
+      {slides.length > 0 && (
       <button
         onClick={() => onManual(slideRight)}
-        className="absolute right-2 top-1/2 z-20 -translate-y-1/2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:right-4 sm:h-12 sm:w-12"
+        className="absolute right-2 top-1/2 z-20 -translate-y-1/2 hidden sm:flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:right-4 sm:h-12 sm:w-12"
         aria-label="Slide right"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-5 w-5 sm:h-6 sm:w-6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
         </svg>
       </button>
+      )}
     </div>
   );
 }

@@ -15,7 +15,7 @@ export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Mark Developers <onboarding@resend.dev>",
+        from: "Mark Developers <no-reply@markdevelopers.in>",
         to,
         subject: "Your verification code",
         html: `

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ImageUploader from "./ImageUploader";
 import { toast } from "./Toaster";
@@ -19,6 +19,7 @@ export default function ContentManager({
   onSave,
   onAdd,
   onDelete,
+  onReorder,
 }: {
   title: string;
   items: Record<string, unknown>[];
@@ -26,6 +27,7 @@ export default function ContentManager({
   onSave: (index: number, data: Record<string, unknown>) => Promise<{ success: boolean }>;
   onAdd: (data: Record<string, unknown>) => Promise<{ success: boolean }>;
   onDelete: (index: number) => Promise<{ success: boolean }>;
+  onReorder?: (fromIndex: number, toIndex: number) => Promise<{ success: boolean }>;
 }) {
   const router = useRouter();
   const confirm = useConfirm();
@@ -33,6 +35,9 @@ export default function ContentManager({
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragCounter = useRef(0);
 
   const resetForm = useCallback(() => {
     const init: Record<string, string> = {};
@@ -93,12 +98,53 @@ export default function ContentManager({
     setForm((prev) => ({ ...prev, [key]: url }));
   }
 
+  function handleDragStart(e: React.DragEvent, index: number) {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+    setDragIndex(index);
+  }
+
+  function handleDragEnter(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    dragCounter.current++;
+    setDragOverIndex(index);
+  }
+
+  function handleDragLeave() {
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setDragOverIndex(null);
+    }
+  }
+
+  async function handleDrop(e: React.DragEvent, toIndex: number) {
+    e.preventDefault();
+    dragCounter.current = 0;
+    const fromIndex = dragIndex;
+    setDragIndex(null);
+    setDragOverIndex(null);
+    if (fromIndex === null || fromIndex === toIndex || !onReorder) return;
+    try {
+      await onReorder(fromIndex, toIndex);
+      toast.success("Reordered");
+      router.refresh();
+    } catch {
+      toast.error("Failed to reorder");
+    }
+  }
+
+  function handleDragEnd() {
+    dragCounter.current = 0;
+    setDragIndex(null);
+    setDragOverIndex(null);
+  }
+
   const showForm = editingIndex !== null || adding;
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-medium text-white">{title}</h1>
+        <h1 className="text-xl font-medium text-white sm:text-2xl">{title}</h1>
         {!showForm && (
           <button
             onClick={startAdd}
@@ -182,8 +228,28 @@ export default function ContentManager({
           return (
             <div
               key={i}
-              className="flex items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 transition-colors hover:border-zinc-700"
+              draggable={!!onReorder}
+              onDragStart={(e) => handleDragStart(e, i)}
+              onDragEnter={(e) => handleDragEnter(e, i)}
+              onDragLeave={handleDragLeave}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, i)}
+              onDragEnd={handleDragEnd}
+              className={`flex items-center gap-4 rounded-xl border bg-zinc-900/50 p-4 transition-all ${
+                dragOverIndex === i
+                  ? "border-zinc-500 scale-[1.01]"
+                  : dragIndex === i
+                    ? "border-zinc-600 opacity-50"
+                    : "border-zinc-800 hover:border-zinc-700"
+              }`}
             >
+              {onReorder && (
+                <div className="flex flex-col gap-0.5 cursor-grab active:cursor-grabbing" title="Drag to reorder">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-zinc-600">
+                    <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+                  </svg>
+                </div>
+              )}
               {imageUrl && (
                 <img
                   src={imageUrl}

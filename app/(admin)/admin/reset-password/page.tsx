@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import { VerifyForm } from "./verify-form";
+import { ResetPasswordForm } from "./reset-password-form";
 
-export default async function VerifyPage(props: { searchParams: Promise<{ email?: string }> }) {
+export default async function ResetPasswordPage(props: { searchParams: Promise<{ email?: string }> }) {
   const { email } = await props.searchParams;
-  if (!email) redirect("/admin/signup");
+  if (!email) redirect("/admin/forgot-password");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-950">
@@ -12,10 +12,10 @@ export default async function VerifyPage(props: { searchParams: Promise<{ email?
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
             <span className="text-lg font-bold text-white">M</span>
           </div>
-          <h1 className="text-lg font-medium text-white sm:text-xl">Verify Your Email</h1>
-          <p className="mt-1 text-sm text-zinc-500">Enter the code sent to your inbox</p>
+          <h1 className="text-lg font-medium text-white sm:text-xl">Reset Password</h1>
+          <p className="mt-1 text-sm text-zinc-500">Enter the code and your new password</p>
         </div>
-        <VerifyForm email={email} />
+        <ResetPasswordForm email={email} />
       </div>
     </div>
   );
