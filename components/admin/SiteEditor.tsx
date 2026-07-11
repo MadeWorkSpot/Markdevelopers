@@ -71,7 +71,7 @@ export default function SiteEditor({ data: initial }: { data: SiteData }) {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-medium text-white sm:text-2xl">Site Text</h1>
         <button
           onClick={handleSave}

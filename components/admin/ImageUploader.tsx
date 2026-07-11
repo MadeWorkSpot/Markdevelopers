@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { toast } from "./Toaster";
 
-export default function ImageUploader({ onUpload, id = "image-upload" }: { onUpload: (url: string) => void; id?: string }) {
+export default function ImageUploader({ onUpload, onUploadingChange, id = "image-upload" }: { onUpload: (url: string) => void; onUploadingChange?: (uploading: boolean) => void; id?: string }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -18,6 +18,7 @@ export default function ImageUploader({ onUpload, id = "image-upload" }: { onUpl
     }
 
     setUploading(true);
+    onUploadingChange?.(true);
     const formData = new FormData();
     formData.append("file", file);
     try {
@@ -36,6 +37,7 @@ export default function ImageUploader({ onUpload, id = "image-upload" }: { onUpl
       toast.error("Upload failed. Please check your connection.");
     } finally {
       setUploading(false);
+      onUploadingChange?.(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   }

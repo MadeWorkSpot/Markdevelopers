@@ -41,7 +41,7 @@ export default function ContactEditor({ data: initial }: { data: ContactData }) 
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-medium text-white sm:text-2xl">Contact Info</h1>
         <button
           onClick={handleSave}
@@ -76,7 +76,7 @@ export default function ContactEditor({ data: initial }: { data: ContactData }) 
       <Section title="Office Hours">
         <div className="sm:col-span-2 space-y-3">
           {(data.hours ?? []).map((h, i) => (
-          <div key={i} className="flex gap-3">
+          <div key={i} className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input value={h.day} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.hours]; n[i] = { ...n[i], day: val }; return { ...d, hours: n }; }); }} placeholder="Day" className="flex-1 min-w-0 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
             <input value={h.time} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.hours]; n[i] = { ...n[i], time: val }; return { ...d, hours: n }; }); }} placeholder="Time" className="flex-1 min-w-0 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
             <button onClick={() => setData((d) => ({ ...d, hours: d.hours.filter((_, j) => j !== i) }))} className="flex-shrink-0 rounded-lg border border-red-900/50 px-3 py-2 text-xs text-red-400 hover:bg-red-950/50">Remove</button>

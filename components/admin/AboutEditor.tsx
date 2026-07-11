@@ -35,32 +35,30 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
   const router = useRouter();
   const [data, setData] = useState<AboutData>(() => ({
     hero: {
-      image: "",
-      alt: "",
-      heading: "",
-      description: "",
-      ...initial?.hero,
+      image: initial?.hero?.image ?? "",
+      alt: initial?.hero?.alt ?? "",
+      heading: initial?.hero?.heading ?? "",
+      description: initial?.hero?.description ?? "",
     },
     companyStory: {
-      heading: "",
-      content: "",
-      ...initial?.companyStory,
+      heading: initial?.companyStory?.heading ?? "",
+      content: initial?.companyStory?.content ?? "",
     },
     stats: initial?.stats ?? [],
     sectionLabels: {
-      aboutUs: "",
-      ourTeam: "",
-      teamHeading: "",
-      letsWorkTogether: "",
-      readyToStartHeading: "",
-      readyToStartDesc: "",
-      getInTouchLabel: "",
-      ...initial?.sectionLabels,
+      aboutUs: initial?.sectionLabels?.aboutUs ?? "",
+      ourTeam: initial?.sectionLabels?.ourTeam ?? "",
+      teamHeading: initial?.sectionLabels?.teamHeading ?? "",
+      letsWorkTogether: initial?.sectionLabels?.letsWorkTogether ?? "",
+      readyToStartHeading: initial?.sectionLabels?.readyToStartHeading ?? "",
+      readyToStartDesc: initial?.sectionLabels?.readyToStartDesc ?? "",
+      getInTouchLabel: initial?.sectionLabels?.getInTouchLabel ?? "",
     },
     values: initial?.values ?? [],
     team: initial?.team ?? [],
   }));
   const [saving, setSaving] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
 
   async function handleSave() {
     setSaving(true);
@@ -77,14 +75,14 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-medium text-white sm:text-2xl">About Page</h1>
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || uploadingCount > 0}
           className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Save Changes"}
+          {uploadingCount > 0 ? "Uploading..." : saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
 
@@ -96,8 +94,8 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
               onChange={(e) => setData((d) => ({ ...d, hero: { ...d.hero, image: e.target.value } }))}
               className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500"
             />
-            <ImageUploader id="about-hero-image" onUpload={(url) => setData((d) => ({ ...d, hero: { ...d.hero, image: url } }))} />
-            {data.hero.image && <img src={data.hero.image} alt="" className="h-24 w-40 rounded-lg object-cover" />}
+            <ImageUploader id="about-hero-image" onUpload={(url) => setData((d) => ({ ...d, hero: { ...d.hero, image: url } }))} onUploadingChange={(u) => setUploadingCount((c) => c + (u ? 1 : -1))} />
+            {data.hero.image && <img src={data.hero.image} alt="" className="h-24 w-40 rounded-lg object-cover max-w-full" />}
           </div>
         </Field>
         <Field label="Alt Text">
@@ -122,8 +120,8 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
 
       <Section title="Stats">
         {(data.stats ?? []).map((s, i) => (
-          <div key={i} className="flex gap-3">
-            <input value={s.number} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.stats]; n[i] = { ...n[i], number: val }; return { ...d, stats: n }; }); }} placeholder="Number" className="w-32 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+          <div key={i} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input value={s.number} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.stats]; n[i] = { ...n[i], number: val }; return { ...d, stats: n }; }); }} placeholder="Number" className="w-full sm:w-32 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
             <input value={s.label} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.stats]; n[i] = { ...n[i], label: val }; return { ...d, stats: n }; }); }} placeholder="Label" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
             <button onClick={() => setData((d) => ({ ...d, stats: d.stats.filter((_, j) => j !== i) }))} className="rounded-lg border border-red-900/50 px-3 py-2 text-xs text-red-400 hover:bg-red-950/50">Remove</button>
           </div>
@@ -145,14 +143,14 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
       <Section title="Team Members">
         {(data.team ?? []).map((m, i) => (
           <div key={i} className="space-y-2 rounded-lg border border-zinc-800 p-4">
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <input value={m.name} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], name: val }; return { ...d, team: n }; }); }} placeholder="Name" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
               <input value={m.role} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], role: val }; return { ...d, team: n }; }); }} placeholder="Role" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
             </div>
             <div className="space-y-2">
               <input value={m.image} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], image: val }; return { ...d, team: n }; }); }} placeholder="Image URL" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
-              <ImageUploader id={`about-team-image-${i}`} onUpload={(url) => { setData((d) => { const n = [...d.team]; n[i] = { ...n[i], image: url }; return { ...d, team: n }; }); }} />
-              {m.image && <img src={m.image} alt="" className="h-16 w-24 rounded-lg object-cover" />}
+              <ImageUploader id={`about-team-image-${i}`} onUpload={(url) => { setData((d) => { const n = [...d.team]; n[i] = { ...n[i], image: url }; return { ...d, team: n }; }); }} onUploadingChange={(u) => setUploadingCount((c) => c + (u ? 1 : -1))} />
+              {m.image && <img src={m.image} alt="" className="h-16 w-24 rounded-lg object-cover max-w-full" />}
             </div>
             <button onClick={() => setData((d) => ({ ...d, team: d.team.filter((_, j) => j !== i) }))} className="text-xs text-red-400 hover:text-red-300">Remove</button>
           </div>

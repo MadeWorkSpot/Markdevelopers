@@ -35,6 +35,7 @@ export default function ContentManager({
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef(0);
@@ -149,7 +150,7 @@ export default function ContentManager({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-medium text-white sm:text-2xl">{title}</h1>
         {!showForm && (
           <button
@@ -187,12 +188,15 @@ export default function ContentManager({
                       placeholder="Image URL"
                       className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-zinc-500"
                     />
-                    <ImageUploader onUpload={(url) => handleImageUpload(url, field.key)} />
+                    <ImageUploader
+                      onUpload={(url) => handleImageUpload(url, field.key)}
+                      onUploadingChange={(u) => setUploadingCount((c) => c + (u ? 1 : -1))}
+                    />
                     {form[field.key] && (
                       <img
                         src={form[field.key]}
                         alt="Preview"
-                        className="mt-2 h-24 w-40 rounded-lg object-cover"
+                        className="mt-2 h-24 w-40 rounded-lg object-cover max-w-full"
                       />
                     )}
                   </div>
@@ -209,10 +213,10 @@ export default function ContentManager({
           <div className="mt-4 flex gap-3">
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || uploadingCount > 0}
               className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save"}
+              {uploadingCount > 0 ? "Uploading..." : saving ? "Saving..." : "Save"}
             </button>
             <button
               onClick={cancel}
@@ -241,7 +245,7 @@ export default function ContentManager({
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, i)}
               onDragEnd={handleDragEnd}
-              className={`flex items-center gap-4 rounded-xl border bg-zinc-900/50 p-4 transition-all ${
+              className={`flex flex-wrap items-center gap-3 rounded-xl border bg-zinc-900/50 p-3 transition-all sm:gap-4 sm:p-4 ${
                 dragOverIndex === i
                   ? "border-zinc-500 scale-[1.01]"
                   : dragIndex === i
@@ -260,13 +264,13 @@ export default function ContentManager({
                 <img
                   src={imageUrl}
                   alt=""
-                  className="h-14 w-20 flex-shrink-0 rounded-lg object-cover"
+                  className="h-14 w-20 flex-shrink-0 rounded-lg object-cover max-w-full"
                 />
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-white">{preview}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => startEdit(item, i)}
                   className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-800"

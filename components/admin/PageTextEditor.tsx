@@ -41,7 +41,7 @@ export default function PageTextEditor({
 
   return (
     <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-medium text-zinc-400">{title}</h2>
         <button
           onClick={handleSave}
