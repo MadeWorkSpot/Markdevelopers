@@ -18,7 +18,8 @@ let privateKeyPromise: Promise<CryptoKey> | null = null;
 
 function getPrivateKey(): Promise<CryptoKey> {
   if (!privateKeyPromise) {
-    privateKeyPromise = importPKCS8(PRIVATE_KEY.replace(/\\n/g, "\n"), "RS256");
+    const pem = PRIVATE_KEY.replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+    privateKeyPromise = importPKCS8(pem, "RS256");
   }
   return privateKeyPromise;
 }
