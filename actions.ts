@@ -26,7 +26,7 @@ async function requireAdmin() {
   const sessionCookie = cookieStore.get("session")?.value;
   if (!sessionCookie) throw new Error("Unauthorized");
   try {
-    await adminAuth.verifySessionCookie(sessionCookie, true);
+    await adminAuth.verifySessionCookie(sessionCookie, false);
   } catch {
     throw new Error("Unauthorized");
   }
