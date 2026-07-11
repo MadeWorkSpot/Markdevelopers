@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 import { logout } from "@/actions";
 import { Toaster } from "./Toaster";
 import { ConfirmProvider } from "./ConfirmDialog";
@@ -24,7 +24,9 @@ export default function AdminShell({ children, unreadCount = 0 }: { children: Re
   const [siteHost, setSiteHost] = useState("markdevelopers.in");
 
   useEffect(() => {
-    setSiteHost(window.location.hostname.replace(/^admin\./, ""));
+    startTransition(() => {
+      setSiteHost(window.location.hostname.replace(/^admin\./, ""));
+    });
   }, []);
 
   return (
