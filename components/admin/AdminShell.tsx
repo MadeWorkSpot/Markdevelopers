@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { logout } from "@/actions";
 import { Toaster } from "./Toaster";
 import { ConfirmProvider } from "./ConfirmDialog";
@@ -21,11 +21,9 @@ const navItems = [
 
 export default function AdminShell({ children, unreadCount = 0 }: { children: React.ReactNode; unreadCount?: number }) {
   const pathname = usePathname();
-  const [siteHost, setSiteHost] = useState("markdevelopers.in");
-
-  useEffect(() => {
-    setSiteHost(window.location.hostname.replace(/^admin\./, ""));
-  }, []);
+  const [siteHost] = useState(() =>
+    typeof window === "undefined" ? "markdevelopers.in" : window.location.hostname.replace(/^admin\./, "")
+  );
 
   return (
     <ConfirmProvider>
