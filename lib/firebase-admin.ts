@@ -246,8 +246,10 @@ async function fsRunCount(
     method: "POST",
     headers,
     body: JSON.stringify({
-      structuredQuery,
-      aggregations: [{ alias: "count", count: {} }],
+      structuredAggregationQuery: {
+        structuredQuery,
+        aggregations: [{ alias: "count", count: {} }],
+      },
     }),
   });
   if (!res.ok) throw new Error(`runAggregationQuery: ${res.status}`);
