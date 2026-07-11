@@ -33,11 +33,19 @@ export default function ProjectsCarousel({
   const isSwiping = useRef(false);
 
   useEffect(() => {
-    const onResize = () => setVisible(getVisibleCards());
+    const onResize = () => {
+      const newVisible = getVisibleCards();
+      setVisible((prev) => {
+        if (prev !== newVisible) {
+          setIdx((i) => Math.min(i, (projects.length + 1) - newVisible));
+        }
+        return newVisible;
+      });
+    };
     onResize();
     window.addEventListener("resize", onResize, { passive: true });
     return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [projects.length]);
 
   const totalItems = projects.length + 1;
   const maxIdx = totalItems - visible;

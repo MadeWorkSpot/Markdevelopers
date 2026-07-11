@@ -10,6 +10,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
   const [state, formAction, pending] = useActionState(resetPassword, null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [localPending, setLocalPending] = useState(false);
   const [resending, setResending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -33,7 +34,12 @@ export function ResetPasswordForm({ email }: { email: string }) {
       return;
     }
 
-    formAction(form);
+    setLocalPending(true);
+    try {
+      formAction(form);
+    } finally {
+      setLocalPending(false);
+    }
   }
 
   async function handleResend() {
@@ -55,7 +61,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
 
       {(state?.error || error) && (
         <p className="rounded-lg border border-red-900/50 bg-red-950/50 p-3 text-sm text-red-400">
-          {state?.error || error}
+          {error || state?.error}
         </p>
       )}
       {message && (
@@ -138,10 +144,10 @@ export function ResetPasswordForm({ email }: { email: string }) {
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || localPending}
         className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pending ? "Resetting..." : "Reset Password"}
+        {pending || localPending ? "Resetting..." : "Reset Password"}
       </button>
 
       <p className="text-center text-xs text-zinc-500">

@@ -26,7 +26,7 @@ export async function AboutSection() {
                 <span className="block font-medium">{headingEnd}</span>
               )}
             </h2>
-            <p className="mt-4 md:mt-8 text-lg leading-snug text-black/60 sm:text-xl">
+            <p className="mt-4 md:mt-8 text-md sm:text-lg lg:text-xl leading-snug text-black/60">
               {about.hero?.description ?? ""}
             </p>
             {(about.stats ?? []).length > 0 && (
@@ -155,7 +155,7 @@ export async function ContactSection() {
           <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white text-balance">
             {contact.heading ?? ""}
           </h2>
-          <p className="mt-4 md:mt-8 max-w-3xl text-lg leading-relaxed text-white/60 sm:text-xl">
+          <p className="mt-4 md:mt-8 max-w-3xl text-md sm:text-lg lg:text-xl leading-snug text-white/60">
             {contact.description ?? ""}
           </p>
         </div>

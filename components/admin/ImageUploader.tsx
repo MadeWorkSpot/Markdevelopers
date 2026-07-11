@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { toast } from "./Toaster";
 
-export default function ImageUploader({ onUpload }: { onUpload: (url: string) => void }) {
+export default function ImageUploader({ onUpload, id = "image-upload" }: { onUpload: (url: string) => void; id?: string }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -48,11 +48,11 @@ export default function ImageUploader({ onUpload }: { onUpload: (url: string) =>
         accept="image/*"
         onChange={handleFile}
         className="hidden"
-        id="image-upload"
+        id={id}
         disabled={uploading}
       />
       <label
-        htmlFor="image-upload"
+        htmlFor={id}
         className={`rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-700/50 ${uploading ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
       >
         {uploading ? "Uploading..." : "Upload Image"}

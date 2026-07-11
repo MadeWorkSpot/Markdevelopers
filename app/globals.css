@@ -5,13 +5,18 @@ html {
   text-size-adjust: none;
 }
 
-@import "tailwindcss";
-
 @theme {
-  --breakpoint-*: initial; /* Resets all defaults */
+  --breakpoint-*: initial;
   --breakpoint-xs: 320px;
   --breakpoint-sm: 480px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 976px;
   --breakpoint-xl: 1200px;
-}   
+  --animate-shimmer: shimmer 2s ease-in-out infinite;
+
+  @keyframes shimmer {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+    100% { opacity: 0.3; }
+  }
+}
