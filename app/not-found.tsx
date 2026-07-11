@@ -6,7 +6,7 @@ export default function NotFound() {
   return (
     <>
       <Navbar />
-      <main className="flex min-h-[calc(100vh-64px)] flex-col items-center justify-center bg-white px-4">
+      <main className="flex min-h-[calc(100dvh-64px)] flex-col items-center justify-center bg-white px-4">
         <div className="text-center">
           <h1 className="mt-2 text-8xl font-bold leading-none text-black sm:text-9xl">
             404

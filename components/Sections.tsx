@@ -20,7 +20,7 @@ export async function AboutSection() {
       <div className="mx-auto max-w-full">
         <div className="flex flex-col gap-12 lg:flex-row lg:items-center">
           <div className="lg:w-1/2">
-            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black">
+            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black text-balance">
               {headingStart}
               {headingEnd && (
                 <span className="block font-medium">{headingEnd}</span>
@@ -78,7 +78,7 @@ export async function ServicesSection() {
     <section id="services" className="relative bg-black px-4 py-16 md:py-24 md:px-8 lg:px-12 xl:px-24">
       <div className="mx-auto max-w-full">
         <div className="flex flex-col gap-4">
-          <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white">
+          <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white text-balance">
             {firstWords} {" "}
             <span className="font-medium">{lastWord}</span>
           </h2>
@@ -96,7 +96,7 @@ export async function ServicesSection() {
                 )}
               </div>
               <div className="mt-4">
-                <h3 className="text-md sm:text-base md:text-lg font-medium text-white">{s.title}</h3>
+                <h3 className="text-md sm:text-base md:text-lg font-medium text-white text-balance">{s.title}</h3>
                 <p className="mt-2 text-sm md:text-md leading-tight text-white/60">{s.desc}</p>
               </div>
             </div>
@@ -152,7 +152,7 @@ export async function ContactSection() {
     <section id="contact" className="bg-black px-4 py-16 md:py-24 md:px-8 lg:px-12 xl:px-24">
       <div className="mx-auto max-w-full">
         <div className="flex flex-col">
-          <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white">
+          <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white text-balance">
             {contact.heading ?? ""}
           </h2>
           <p className="mt-4 md:mt-8 max-w-3xl text-lg leading-relaxed text-white/60 sm:text-xl">

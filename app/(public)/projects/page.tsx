@@ -23,7 +23,7 @@ export default async function ProjectsPage() {
   return (
     <section className="bg-white px-4 py-24 pt-36 md:px-8 lg:px-12 xl:px-24">
       <div className="mx-auto max-w-full">
-        <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black">
+        <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black text-balance">
           {firstWords}{" "}
           <span className="font-medium">{lastWord}</span>
         </h1>
@@ -47,7 +47,7 @@ export default async function ProjectsPage() {
                 )}
               </div>
               <div className="mt-5">
-                <h2 className="text-lg font-medium text-black sm:text-xl">{p.title}</h2>
+                <h2 className="text-lg font-medium text-black sm:text-xl text-balance">{p.title}</h2>
                 {p.subtitle && (
                   <p className="mt-1 text-base text-black/60">{p.subtitle}</p>
                 )}
