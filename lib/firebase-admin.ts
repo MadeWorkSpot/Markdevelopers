@@ -31,8 +31,7 @@ async function getAccessToken(): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
 
   const jwt = await new SignJWT({
-    scope:
-      "https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/identity.platform",
+    scope: "https://www.googleapis.com/auth/cloud-platform",
   })
     .setProtectedHeader({ alg: "RS256" })
     .setIssuer(CLIENT_EMAIL)
