@@ -54,12 +54,14 @@ export default function AdminShell({ children, unreadCount = 0 }: { children: Re
             })}
           </nav>
           <div className="border-t border-zinc-800 px-3 py-4">
-            <Link
-              href="/"
+            <a
+              href={`https://${typeof window !== "undefined" ? window.location.hostname.replace(/^admin\./, "") : "markdevelopers.in"}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white/80"
             >
               View Site
-            </Link>
+            </a>
             <form action={logout}>
               <button
                 type="submit"

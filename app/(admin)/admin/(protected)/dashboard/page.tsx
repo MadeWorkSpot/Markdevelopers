@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { readData } from "@/lib/data";
 
+const PUBLIC_HOST = process.env.PUBLIC_HOST || "markdevelopers.in";
+
 export default async function AdminDashboard() {
+  const origin = `https://${PUBLIC_HOST}`;
   const items = [
     { label: "Carousel Slides", href: "/admin/dashboard/carousel", file: "carousel", view: "/" },
     { label: "Services", href: "/admin/dashboard/services", file: "services", view: "/#services" },
@@ -45,7 +48,7 @@ export default async function AdminDashboard() {
               <p className="mt-2 text-3xl font-semibold text-white">{item.count}</p>
             </Link>
             {item.view && (
-              <a href={item.view} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs text-zinc-500 underline transition-colors hover:text-zinc-300">
+              <a href={`${origin}${item.view}`} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs text-zinc-500 underline transition-colors hover:text-zinc-300">
                 View on site ↗
               </a>
             )}
@@ -56,22 +59,19 @@ export default async function AdminDashboard() {
       <div className="mt-12 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
         <h2 className="text-sm font-medium text-zinc-400">Quick Links</h2>
         <div className="mt-4 flex flex-wrap gap-3">
-          <a href="/" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
+          <a href={origin} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
             Home
           </a>
-          <a href="/about" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
+          <a href={`${origin}/about`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
             About
           </a>
-          <a href="/services" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
-            Services
-          </a>
-          <a href="/projects" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
+          <a href={`${origin}/projects`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
             Projects
           </a>
-          <a href="/gallery" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
+          <a href={`${origin}/gallery`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
             Gallery
           </a>
-          <a href="/#contact" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
+          <a href={`${origin}/#contact`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-800">
             Contact
           </a>
         </div>
