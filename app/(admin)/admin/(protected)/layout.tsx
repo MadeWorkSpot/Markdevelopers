@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { adminAuth } from "@/lib/firebase-admin";
-import { getUnreadCount } from "@/actions";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import AdminShell from "@/components/admin/AdminShell";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -9,11 +8,15 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const sessionCookie = cookieStore.get("session")?.value;
   if (!sessionCookie) redirect("/admin/login");
   try {
-    await adminAuth.verifySessionCookie(sessionCookie);
+    await adminAuth.verifySessionCookie(sessionCookie, true);
   } catch {
-    cookieStore.delete("session");
     redirect("/admin/login");
   }
-  const unreadCount = await getUnreadCount();
+  const snapshot = await adminDb
+    .collection("messages")
+    .where("isRead", "==", false)
+    .count()
+    .get();
+  const unreadCount = snapshot.data().count;
   return <AdminShell unreadCount={unreadCount}>{children}</AdminShell>;
 }

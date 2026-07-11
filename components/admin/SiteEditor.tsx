@@ -31,7 +31,29 @@ type SiteData = {
 
 export default function SiteEditor({ data: initial }: { data: SiteData }) {
   const router = useRouter();
-  const [data, setData] = useState(initial);
+  const [data, setData] = useState({
+    navbarMenuLabel: initial.navbarMenuLabel ?? "",
+    navLinkLabels: initial.navLinkLabels ?? [],
+    footerTagline: initial.footerTagline ?? "",
+    footerQuickLinksHeading: initial.footerQuickLinksHeading ?? "",
+    footerQuickLinkLabels: initial.footerQuickLinkLabels ?? [],
+    footerContactHeading: initial.footerContactHeading ?? "",
+    footerCopyright: initial.footerCopyright ?? "",
+    learnMoreLabel: initial.learnMoreLabel ?? "",
+    viewAllServicesLabel: initial.viewAllServicesLabel ?? "",
+    sendMessageLabel: initial.sendMessageLabel ?? "",
+    contactDetailsHeading: initial.contactDetailsHeading ?? "",
+    officeHoursHeading: initial.officeHoursHeading ?? "",
+    servicesSectionHeading: initial.servicesSectionHeading ?? "",
+    projectsSectionHeading: initial.projectsSectionHeading ?? "",
+    viewAllProjectsLabel: initial.viewAllProjectsLabel ?? "",
+    contactNameLabel: initial.contactNameLabel ?? "",
+    contactNamePlaceholder: initial.contactNamePlaceholder ?? "",
+    contactEmailLabel: initial.contactEmailLabel ?? "",
+    contactEmailPlaceholder: initial.contactEmailPlaceholder ?? "",
+    contactMessageLabel: initial.contactMessageLabel ?? "",
+    contactMessagePlaceholder: initial.contactMessagePlaceholder ?? "",
+  });
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {

@@ -5,15 +5,17 @@ const ADMIN_PREFIX = process.env.ADMIN_HOST_PREFIX || "admin.";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hostWithPort = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
-  const host = hostWithPort.split(":")[0];
+  // Use only the Host header for security decisions — x-forwarded-host can be
+  // spoofed by clients and must not be trusted for access control or redirects.
+  const hostHeader = request.headers.get("host") || "";
+  const host = hostHeader.split(":")[0];
 
   const isAdmin = host.startsWith(ADMIN_PREFIX);
 
   if (isAdmin) {
     if (!pathname.startsWith("/admin")) {
       return NextResponse.redirect(
-        new URL("/admin/dashboard", `${request.nextUrl.protocol}//${hostWithPort}`)
+        new URL("/admin/dashboard", `${request.nextUrl.protocol}//${hostHeader}`)
       );
     }
 
@@ -22,13 +24,13 @@ export function middleware(request: NextRequest) {
 
     if (isLoginRoute && session) {
       return NextResponse.redirect(
-        new URL("/admin/dashboard", `${request.nextUrl.protocol}//${hostWithPort}`)
+        new URL("/admin/dashboard", `${request.nextUrl.protocol}//${hostHeader}`)
       );
     }
 
     if (!isLoginRoute && !session) {
       return NextResponse.redirect(
-        new URL("/admin/login", `${request.nextUrl.protocol}//${hostWithPort}`)
+        new URL("/admin/login", `${request.nextUrl.protocol}//${hostHeader}`)
       );
     }
 

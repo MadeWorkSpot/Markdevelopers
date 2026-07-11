@@ -21,7 +21,7 @@ export default function ImageUploader({ onUpload, id = "image-upload" }: { onUpl
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const res = await fetch("/admin/api/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || "Upload failed");

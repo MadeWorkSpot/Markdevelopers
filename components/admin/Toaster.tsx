@@ -60,7 +60,6 @@ export function Toaster() {
           {t.message}
         </div>
       ))}
-      <style>{`@keyframes toast-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }`}</style>
     </div>
   );
 }

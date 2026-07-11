@@ -1,11 +1,14 @@
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
+import { Suspense } from "react";
+import NavbarWrapper from "@/components/NavbarWrapper";
 import Footer from "@/components/Footer";
 
 export default function NotFound() {
   return (
     <>
-      <Navbar />
+      <Suspense fallback={<div className="h-16 bg-black" />}>
+        <NavbarWrapper />
+      </Suspense>
       <main className="flex min-h-[calc(100dvh-64px)] flex-col items-center justify-center bg-white px-4">
         <div className="text-center">
           <h1 className="mt-2 text-8xl font-bold leading-none text-black sm:text-9xl">
@@ -22,7 +25,9 @@ export default function NotFound() {
           </Link>
         </div>
       </main>
-      <Footer />
+      <Suspense fallback={<div className="h-64 bg-zinc-950" />}>
+        <Footer />
+      </Suspense>
     </>
   );
 }

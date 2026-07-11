@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { submitContact } from "@/actions";
 
 export default function ContactForm({
@@ -21,9 +21,10 @@ export default function ContactForm({
   sendMessageLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(submitContact, null);
+  const id = useId();
 
   return (
-    <form action={formAction} className="grid gap-6 sm:grid-cols-2">
+    <form key={state?.success ? `${id}-sent` : id} action={formAction} className="grid gap-6 sm:grid-cols-2">
       {state?.error && (
         <p className="sm:col-span-2 text-sm text-red-400">{state.error}</p>
       )}
@@ -31,34 +32,37 @@ export default function ContactForm({
         <p className="sm:col-span-2 text-sm text-green-400">Message sent successfully!</p>
       )}
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-white/60">{nameLabel}</label>
+        <label htmlFor={`${id}-name`} className="block text-sm font-medium text-white/60">{nameLabel}</label>
         <input
-          id="name"
+          id={`${id}-name`}
           name="name"
           type="text"
           required
+          maxLength={100}
           placeholder={namePlaceholder}
           className="mt-2 w-full border border-white/20 bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white"
         />
       </div>
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-white/60">{emailLabel}</label>
+        <label htmlFor={`${id}-email`} className="block text-sm font-medium text-white/60">{emailLabel}</label>
         <input
-          id="email"
+          id={`${id}-email`}
           name="email"
           type="email"
           required
+          maxLength={254}
           placeholder={emailPlaceholder}
           className="mt-2 w-full border border-white/20 bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white"
         />
       </div>
       <div className="sm:col-span-2">
-        <label htmlFor="message" className="block text-sm font-medium text-white/60">{messageLabel}</label>
+        <label htmlFor={`${id}-message`} className="block text-sm font-medium text-white/60">{messageLabel}</label>
         <textarea
-          id="message"
+          id={`${id}-message`}
           name="message"
           rows={5}
           required
+          maxLength={5000}
           placeholder={messagePlaceholder}
           className="mt-2 w-full resize-none border border-white/20 bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white"
         />

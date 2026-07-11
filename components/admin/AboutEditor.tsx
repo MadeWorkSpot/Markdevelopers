@@ -33,7 +33,33 @@ type AboutData = {
 
 export default function AboutPage({ data: initial }: { data: AboutData }) {
   const router = useRouter();
-  const [data, setData] = useState(initial);
+  const [data, setData] = useState<AboutData>(() => ({
+    hero: {
+      image: "",
+      alt: "",
+      heading: "",
+      description: "",
+      ...initial?.hero,
+    },
+    companyStory: {
+      heading: "",
+      content: "",
+      ...initial?.companyStory,
+    },
+    stats: initial?.stats ?? [],
+    sectionLabels: {
+      aboutUs: "",
+      ourTeam: "",
+      teamHeading: "",
+      letsWorkTogether: "",
+      readyToStartHeading: "",
+      readyToStartDesc: "",
+      getInTouchLabel: "",
+      ...initial?.sectionLabels,
+    },
+    values: initial?.values ?? [],
+    team: initial?.team ?? [],
+  }));
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -70,7 +96,7 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
               onChange={(e) => setData((d) => ({ ...d, hero: { ...d.hero, image: e.target.value } }))}
               className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500"
             />
-            <ImageUploader onUpload={(url) => setData((d) => ({ ...d, hero: { ...d.hero, image: url } }))} />
+            <ImageUploader id="about-hero-image" onUpload={(url) => setData((d) => ({ ...d, hero: { ...d.hero, image: url } }))} />
             {data.hero.image && <img src={data.hero.image} alt="" className="h-24 w-40 rounded-lg object-cover" />}
           </div>
         </Field>
@@ -97,8 +123,8 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
       <Section title="Stats">
         {(data.stats ?? []).map((s, i) => (
           <div key={i} className="flex gap-3">
-            <input value={s.number} onChange={(e) => { const n = [...data.stats]; n[i] = { ...n[i], number: e.target.value }; setData((d) => ({ ...d, stats: n })); }} placeholder="Number" className="w-32 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
-            <input value={s.label} onChange={(e) => { const n = [...data.stats]; n[i] = { ...n[i], label: e.target.value }; setData((d) => ({ ...d, stats: n })); }} placeholder="Label" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+            <input value={s.number} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.stats]; n[i] = { ...n[i], number: val }; return { ...d, stats: n }; }); }} placeholder="Number" className="w-32 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+            <input value={s.label} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.stats]; n[i] = { ...n[i], label: val }; return { ...d, stats: n }; }); }} placeholder="Label" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
             <button onClick={() => setData((d) => ({ ...d, stats: d.stats.filter((_, j) => j !== i) }))} className="rounded-lg border border-red-900/50 px-3 py-2 text-xs text-red-400 hover:bg-red-950/50">Remove</button>
           </div>
         ))}
@@ -108,8 +134,8 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
       <Section title="Values">
         {(data.values ?? []).map((v, i) => (
           <div key={i} className="space-y-2 rounded-lg border border-zinc-800 p-4">
-            <input value={v.title} onChange={(e) => { const n = [...data.values]; n[i] = { ...n[i], title: e.target.value }; setData((d) => ({ ...d, values: n })); }} placeholder="Title" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
-            <textarea value={v.desc} onChange={(e) => { const n = [...data.values]; n[i] = { ...n[i], desc: e.target.value }; setData((d) => ({ ...d, values: n })); }} rows={2} placeholder="Description" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+            <input value={v.title} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.values]; n[i] = { ...n[i], title: val }; return { ...d, values: n }; }); }} placeholder="Title" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+            <textarea value={v.desc} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.values]; n[i] = { ...n[i], desc: val }; return { ...d, values: n }; }); }} rows={2} placeholder="Description" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
             <button onClick={() => setData((d) => ({ ...d, values: d.values.filter((_, j) => j !== i) }))} className="text-xs text-red-400 hover:text-red-300">Remove</button>
           </div>
         ))}
@@ -120,12 +146,12 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
         {(data.team ?? []).map((m, i) => (
           <div key={i} className="space-y-2 rounded-lg border border-zinc-800 p-4">
             <div className="flex gap-3">
-              <input value={m.name} onChange={(e) => { const n = [...data.team]; n[i] = { ...n[i], name: e.target.value }; setData((d) => ({ ...d, team: n })); }} placeholder="Name" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
-              <input value={m.role} onChange={(e) => { const n = [...data.team]; n[i] = { ...n[i], role: e.target.value }; setData((d) => ({ ...d, team: n })); }} placeholder="Role" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+              <input value={m.name} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], name: val }; return { ...d, team: n }; }); }} placeholder="Name" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+              <input value={m.role} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], role: val }; return { ...d, team: n }; }); }} placeholder="Role" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
             </div>
             <div className="space-y-2">
-              <input value={m.image} onChange={(e) => { const n = [...data.team]; n[i] = { ...n[i], image: e.target.value }; setData((d) => ({ ...d, team: n })); }} placeholder="Image URL" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
-              <ImageUploader onUpload={(url) => { const n = [...data.team]; n[i] = { ...n[i], image: url }; setData((d) => ({ ...d, team: n })); }} />
+              <input value={m.image} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], image: val }; return { ...d, team: n }; }); }} placeholder="Image URL" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+              <ImageUploader id={`about-team-image-${i}`} onUpload={(url) => { setData((d) => { const n = [...d.team]; n[i] = { ...n[i], image: url }; return { ...d, team: n }; }); }} />
               {m.image && <img src={m.image} alt="" className="h-16 w-24 rounded-lg object-cover" />}
             </div>
             <button onClick={() => setData((d) => ({ ...d, team: d.team.filter((_, j) => j !== i) }))} className="text-xs text-red-400 hover:text-red-300">Remove</button>

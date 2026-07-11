@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, createContext, useContext } from "react";
+import { useState, useCallback, useEffect, createContext, useContext } from "react";
 
 type ConfirmContextType = (message: string) => Promise<boolean>;
 
@@ -11,9 +11,24 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 
   const confirm = useCallback((message: string) => {
     return new Promise<boolean>((resolve) => {
-      setState({ message, resolve });
+      setState((prev) => {
+        if (prev) prev.resolve(false);
+        return { message, resolve };
+      });
     });
   }, []);
+
+  useEffect(() => {
+    if (!state) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        state.resolve(false);
+        setState(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [state]);
 
   const handleConfirm = () => {
     state?.resolve(true);
@@ -30,6 +45,9 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       {children}
       {state && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm action"
           style={{
             position: "fixed", inset: 0, zIndex: 9998,
             display: "flex", alignItems: "center", justifyContent: "center",

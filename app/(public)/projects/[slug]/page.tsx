@@ -2,14 +2,19 @@ import { readData } from "@/lib/data";
 import { slugify } from "@/lib/slugify";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { cache } from "react";
 
 export const revalidate = 60;
 
+type ProjectsData = {
+  projects: { title: string; subtitle?: string; description?: string; image: string }[];
+};
+
+const getProjects = cache(async () => readData<ProjectsData>("projects"));
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const data = await readData<{
-    projects: { title: string; subtitle?: string; description?: string; image: string }[];
-  }>("projects");
+  const data = await getProjects();
 
   const project = (data.projects ?? []).find((p) => slugify(p.title) === slug);
   if (!project) return { title: "Project Not Found" };
@@ -22,9 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const data = await readData<{
-    projects: { title: string; subtitle?: string; description?: string; image: string }[];
-  }>("projects");
+  const data = await getProjects();
 
   const project = (data.projects ?? []).find((p) => slugify(p.title) === slug);
   if (!project) notFound();

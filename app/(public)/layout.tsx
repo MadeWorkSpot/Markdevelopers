@@ -14,7 +14,6 @@ function NavbarSkeleton() {
         </div>
         <div className="md:hidden h-5 w-16 rounded bg-white/[0.07] animate-pulse" />
       </div>
-      <style>{`@keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 0.6; } 100% { opacity: 0.3; } }`}</style>
     </nav>
   );
 }
