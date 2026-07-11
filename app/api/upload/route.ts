@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { v2 as cloudinary } from "cloudinary";
 import { adminAuth } from "@/lib/firebase-admin";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif"];
 const MAX_SIZE = 10 * 1024 * 1024;
@@ -23,6 +24,12 @@ export async function POST(req: NextRequest) {
       await adminAuth.verifySessionCookie(sessionCookie, true);
     } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const ip = getClientIp(req);
+    const rl = checkRateLimit("upload", ip);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Too many uploads. Try again later." }, { status: 429 });
     }
 
     const formData = await req.formData();

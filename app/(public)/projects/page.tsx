@@ -16,7 +16,7 @@ export default async function ProjectsPage() {
     projects: { title: string; subtitle: string; description: string; image: string }[];
   }>("projects");
 
-  const headingParts = (data.pageHeading ?? "").split(" ");
+  const headingParts = (data.pageHeading || "Our Projects").split(" ");
   const firstWords = headingParts.slice(0, -1).join(" ");
   const lastWord = headingParts[headingParts.length - 1] ?? "";
 

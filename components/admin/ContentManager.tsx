@@ -65,6 +65,12 @@ export default function ContentManager({
   }
 
   async function handleSave() {
+    const requiredFields = fields.filter((f) => f.type === "text" || f.type === "textarea");
+    const emptyField = requiredFields.find((f) => !(form[f.key] ?? "").trim());
+    if (emptyField) {
+      toast.error(`${emptyField.label} is required`);
+      return;
+    }
     setSaving(true);
     try {
       if (adding) {
@@ -227,7 +233,7 @@ export default function ContentManager({
 
           return (
             <div
-              key={i}
+              key={`${previewField ? String(item[previewField.key] ?? "") : ""}-${i}`}
               draggable={!!onReorder}
               onDragStart={(e) => handleDragStart(e, i)}
               onDragEnter={(e) => handleDragEnter(e, i)}

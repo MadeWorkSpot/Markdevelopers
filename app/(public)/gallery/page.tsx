@@ -15,7 +15,7 @@ export default async function GalleryPage() {
     images: { src: string; alt: string }[];
   }>("gallery");
 
-  const headingParts = (data.pageHeading ?? "").split(" ");
+  const headingParts = (data.pageHeading || "Gallery").split(" ");
   const firstWords = headingParts.slice(0, -1).join(" ");
   const lastWord = headingParts[headingParts.length - 1] ?? "";
 

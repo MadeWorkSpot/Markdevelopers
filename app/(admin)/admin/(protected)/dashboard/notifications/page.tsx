@@ -59,7 +59,7 @@ export default async function NotificationsPage() {
                     {msg.message}
                   </p>
                   <p className="mt-2 text-xs text-zinc-600">
-                    {new Date(msg.createdAt).toLocaleString()}
+                    {msg.createdAt ? new Date(msg.createdAt).toLocaleString() : "Unknown date"}
                   </p>
                 </div>
                 <form action={deleteMessage.bind(null, msg.id)}>

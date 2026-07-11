@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify, importPKCS8, importX509 } from "jose";
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
 const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL || "";
 const PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY || "";
-const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
+const SESSION_SECRET = process.env.SESSION_SECRET || "";
 
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 const AUTH_BASE = `https://identitytoolkit.googleapis.com/v1/projects/${PROJECT_ID}`;
@@ -15,6 +15,7 @@ const FIREBASE_KEYS_URL =
 
 let tokenCache: { token: string; expiresAt: number } | null = null;
 let privateKeyPromise: Promise<CryptoKey> | null = null;
+let tokenPromise: Promise<string> | null = null;
 
 function getPrivateKey(): Promise<CryptoKey> {
   if (!privateKeyPromise) {
@@ -26,36 +27,45 @@ function getPrivateKey(): Promise<CryptoKey> {
 
 async function getAccessToken(): Promise<string> {
   if (tokenCache && Date.now() < tokenCache.expiresAt) return tokenCache.token;
+  if (tokenPromise) return tokenPromise;
 
-  const pk = await getPrivateKey();
-  const now = Math.floor(Date.now() / 1000);
+  tokenPromise = (async () => {
+    const pk = await getPrivateKey();
+    const now = Math.floor(Date.now() / 1000);
 
-  const jwt = await new SignJWT({
-    scope: "https://www.googleapis.com/auth/cloud-platform",
-  })
-    .setProtectedHeader({ alg: "RS256" })
-    .setIssuer(CLIENT_EMAIL)
-    .setAudience(TOKEN_URL)
-    .setIssuedAt(now)
-    .setExpirationTime("55m")
-    .sign(pk);
+    const jwt = await new SignJWT({
+      scope: "https://www.googleapis.com/auth/cloud-platform",
+    })
+      .setProtectedHeader({ alg: "RS256" })
+      .setIssuer(CLIENT_EMAIL)
+      .setAudience(TOKEN_URL)
+      .setIssuedAt(now)
+      .setExpirationTime("55m")
+      .sign(pk);
 
-  const res = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
+    const res = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: jwt,
+      }),
+    });
 
-  if (!res.ok) throw new Error(`Token error: ${res.status}`);
-  const data = await res.json();
-  tokenCache = {
-    token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in - 300) * 1000,
-  };
-  return tokenCache.token;
+    if (!res.ok) throw new Error(`Token error: ${res.status}`);
+    const data = await res.json();
+    tokenCache = {
+      token: data.access_token,
+      expiresAt: Date.now() + (data.expires_in - 300) * 1000,
+    };
+    return tokenCache.token;
+  })();
+
+  try {
+    return await tokenPromise;
+  } finally {
+    tokenPromise = null;
+  }
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -301,7 +311,8 @@ class DocRef {
     return new DocSnapshot(true, fromRestDoc(doc), this);
   }
   async set(data: Record<string, unknown>): Promise<void> {
-    await fsPatch(this.path, toFirestoreFields(data));
+    const fieldPaths = Object.keys(data);
+    await fsPatch(this.path, toFirestoreFields(data), fieldPaths);
   }
   async update(data: Record<string, unknown>): Promise<void> {
     const fieldPaths = Object.keys(data).filter(
@@ -332,7 +343,8 @@ class Query {
   }
 
   orderBy(field: string, direction = "ASCENDING"): Query {
-    return new Query(this._collection, this._where, { field, direction });
+    const dir = direction.toUpperCase() === "DESC" ? "DESCENDING" : direction.toUpperCase() === "ASC" ? "ASCENDING" : direction.toUpperCase();
+    return new Query(this._collection, this._where, { field, direction: dir });
   }
 
   async get(): Promise<QuerySnapshot> {
@@ -400,7 +412,8 @@ class CollectionRef {
   }
 
   orderBy(field: string, direction = "ASCENDING"): Query {
-    return new Query(this._path, undefined, { field, direction });
+    const dir = direction.toUpperCase() === "DESC" ? "DESCENDING" : direction.toUpperCase() === "ASC" ? "ASCENDING" : direction.toUpperCase();
+    return new Query(this._path, undefined, { field, direction: dir });
   }
 }
 
@@ -417,7 +430,9 @@ class WriteBatch {
     this._ops.push(() => ref.delete());
   }
   async commit(): Promise<void> {
-    await Promise.all(this._ops.map((op) => op()));
+    for (const op of this._ops) {
+      await op();
+    }
   }
 }
 
@@ -430,15 +445,16 @@ class FirestoreRest {
   }
 }
 
-// ── Session Cookie (jose + API key HMAC) ─────────────────────
+// ── Session Cookie (jose + SESSION_SECRET HMAC) ──────────────
 
 let sessionKey: CryptoKey | null = null;
 
 async function getSessionKey(): Promise<CryptoKey> {
   if (sessionKey) return sessionKey;
+  if (!SESSION_SECRET) throw new Error("SESSION_SECRET environment variable is not set.");
   sessionKey = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(API_KEY),
+    new TextEncoder().encode(SESSION_SECRET),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"]
@@ -447,23 +463,34 @@ async function getSessionKey(): Promise<CryptoKey> {
 }
 
 let firebaseKeysCache: { keys: Record<string, CryptoKey>; expiresAt: number } | null = null;
+let firebaseKeysPromise: Promise<Record<string, CryptoKey>> | null = null;
 
 async function getFirebasePublicKeys(): Promise<Record<string, CryptoKey>> {
   if (firebaseKeysCache && Date.now() < firebaseKeysCache.expiresAt)
     return firebaseKeysCache.keys;
+  if (firebaseKeysPromise) return firebaseKeysPromise;
 
-  const res = await fetch(FIREBASE_KEYS_URL);
-  if (!res.ok) throw new Error(`Failed to fetch Firebase keys: ${res.status}`);
-  const data = (await res.json()) as Record<string, string>;
-  const keys: Record<string, CryptoKey> = {};
-  for (const [kid, pem] of Object.entries(data)) {
-    keys[kid] = await importX509(pem, "RS256");
+  firebaseKeysPromise = (async () => {
+    const res = await fetch(FIREBASE_KEYS_URL);
+    if (!res.ok) throw new Error(`Failed to fetch Firebase keys: ${res.status}`);
+    const data = (await res.json()) as Record<string, string>;
+    const keys: Record<string, CryptoKey> = {};
+    for (const [kid, pem] of Object.entries(data)) {
+      keys[kid] = await importX509(pem, "RS256");
+    }
+    let ttl = 3600000;
+    const cacheControl = res.headers.get("cache-control") || "";
+    const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
+    if (maxAgeMatch) ttl = parseInt(maxAgeMatch[1], 10) * 1000;
+    firebaseKeysCache = { keys, expiresAt: Date.now() + ttl };
+    return keys;
+  })();
+
+  try {
+    return await firebaseKeysPromise;
+  } finally {
+    firebaseKeysPromise = null;
   }
-  firebaseKeysCache = {
-    keys,
-    expiresAt: Date.now() + 3600000,
-  };
-  return keys;
 }
 
 async function createSessionCookie(
@@ -499,32 +526,16 @@ async function createSessionCookie(
     .setProtectedHeader({ alg: "HS256", kid: "firebase-session" })
     .setSubject(payload.sub as string)
     .setIssuedAt(now)
-    .setExpirationTime(Math.floor(expiresIn / 1000))
+    .setExpirationTime(now + Math.floor(expiresIn / 1000))
     .sign(await getSessionKey());
 
   return jwt;
 }
 
 async function createAdminSessionCookie(
-  email: string,
-  expiresIn: number
+  ..._args: unknown[]
 ): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const jwt = await new SignJWT({
-    iss: `https://sessiontoken.firebase.google.com/${PROJECT_ID}`,
-    aud: PROJECT_ID,
-    user_id: email,
-    email,
-    email_verified: true,
-    auth_time: now,
-  })
-    .setProtectedHeader({ alg: "HS256", kid: "admin-session" })
-    .setSubject(email)
-    .setIssuedAt(now)
-    .setExpirationTime(Math.floor(expiresIn / 1000))
-    .sign(await getSessionKey());
-
-  return jwt;
+  throw new Error("createAdminSessionCookie is disabled — use Firebase Auth verification instead");
 }
 
 async function verifySessionCookie(
@@ -578,8 +589,13 @@ async function authRequest(
 }
 
 async function authGetUser(uid: string): Promise<AuthUser> {
-  const data = (await authRequest(`/accounts/${uid}`, "GET")) as AuthUser;
-  return data;
+  // Firebase Identity Toolkit REST uses POST /accounts:lookup (not GET /accounts/{uid})
+  const res = (await authRequest("/accounts:lookup", "POST", { localId: [uid] })) as {
+    users?: AuthUser[];
+  };
+  const user = res.users?.[0];
+  if (!user) throw new Error(`User not found: ${uid}`);
+  return user;
 }
 
 class AuthRest {

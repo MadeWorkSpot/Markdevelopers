@@ -7,6 +7,20 @@ import { readData, writeData } from "@/lib/data";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+const VALID_CONTENT_TYPES = [
+  "carousel", "services", "projects", "gallery",
+  "about", "contact", "site",
+];
+
+const contentLocks = new Map<string, Promise<unknown>>();
+
+async function withContentLock<T>(type: string, fn: () => Promise<T>): Promise<T> {
+  const prev = contentLocks.get(type) ?? Promise.resolve();
+  const next = prev.then(fn, fn);
+  contentLocks.set(type, next.then(() => {}));
+  return next;
+}
+
 async function requireAdmin() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session")?.value;
@@ -58,7 +72,7 @@ export async function login(_prev: unknown, formData: FormData) {
     cookieStore.set("session", sessionCookie, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       path: "/",
       maxAge: 60 * 60 * 24,
     });
@@ -66,11 +80,19 @@ export async function login(_prev: unknown, formData: FormData) {
     return { error: "Authentication failed." };
   }
 
-  redirect("/admin/dashboard");
+  return { success: true };
 }
 
 export async function logout() {
   const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("session")?.value;
+  if (sessionCookie) {
+    try {
+      const session = await adminAuth.verifySessionCookie(sessionCookie);
+      const uid = session.sub || session.user_id;
+      if (uid) await adminAuth.revokeRefreshTokens(uid);
+    } catch {}
+  }
   cookieStore.delete("session");
   redirect("/admin/login");
 }
@@ -78,12 +100,26 @@ export async function logout() {
 // ─── Content CRUD ────────────────────────────────────────────────────────────
 
 export async function submitContact(_prev: unknown, formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const message = formData.get("message") as string;
+  const name = (formData.get("name") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim();
+  const message = (formData.get("message") as string)?.trim();
 
   if (!name || !email || !message) {
     return { error: "All fields are required." };
+  }
+  if (name.length > 100) {
+    return { error: "Name must be 100 characters or less." };
+  }
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Please enter a valid email address." };
+  }
+  if (message.length > 5000) {
+    return { error: "Message must be 5000 characters or less." };
+  }
+
+  const rl = checkRateLimit(`contact:${email}`);
+  if (!rl.allowed) {
+    return { error: `Too many messages. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
   }
 
   try {
@@ -134,13 +170,19 @@ export async function markMessagesAsRead() {
 
 export async function saveContent(type: string, data: unknown) {
   await requireAdmin();
-  const existing = await readData<Record<string, unknown>>(type);
-  const merged = {
-    ...existing,
-    ...(data as Record<string, unknown>),
-  };
-  await writeData(type, merged);
-  return { success: true };
+  if (!VALID_CONTENT_TYPES.includes(type)) {
+    return { success: false, error: "Invalid content type" };
+  }
+  return withContentLock(type, async () => {
+    const existing = await readData<Record<string, unknown>>(type);
+    const merged = {
+      ...existing,
+      ...(data as Record<string, unknown>),
+    };
+    await writeData(type, merged);
+    revalidatePath("/", "layout");
+    return { success: true };
+  });
 }
 
 export async function addArrayItem(
@@ -153,6 +195,7 @@ export async function addArrayItem(
   const arr = (data[key] as unknown[]) ?? [];
   (data as Record<string, unknown>)[key] = [...arr, item];
   await writeData(type, data);
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -165,9 +208,13 @@ export async function updateArrayItem(
   await requireAdmin();
   const data = await readData<Record<string, unknown[]>>(type);
   const arr = data[key] ?? [];
+  if (index < 0 || index >= arr.length) {
+    return { success: false, error: "Index out of bounds" };
+  }
   arr[index] = item as never;
   data[key] = arr;
   await writeData(type, data);
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -175,6 +222,7 @@ export async function deleteMessage(messageId: string) {
   await requireAdmin();
   await adminDb.collection("messages").doc(messageId).delete();
   revalidatePath("/admin/dashboard/notifications");
+  revalidatePath("/admin", "layout");
 }
 
 export async function deleteArrayItem(
@@ -186,6 +234,7 @@ export async function deleteArrayItem(
   const data = await readData<Record<string, unknown[]>>(type);
   data[key] = (data[key] ?? []).filter((_, i) => i !== index);
   await writeData(type, data);
+  revalidatePath("/", "layout");
   return { success: true };
 }
 
@@ -198,9 +247,13 @@ export async function reorderArray(
   await requireAdmin();
   const data = await readData<Record<string, unknown[]>>(type);
   const arr = [...(data[key] ?? [])];
+  if (fromIndex < 0 || fromIndex >= arr.length || toIndex < 0 || toIndex >= arr.length) {
+    return { success: false, error: "Index out of bounds" };
+  }
   const [item] = arr.splice(fromIndex, 1);
   arr.splice(toIndex, 0, item);
   (data as Record<string, unknown>)[key] = arr;
   await writeData(type, data);
+  revalidatePath("/", "layout");
   return { success: true };
 }

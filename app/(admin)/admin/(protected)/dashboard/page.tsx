@@ -19,8 +19,9 @@ export default async function AdminDashboard() {
       if (!item.file) return { ...item, count: "—" };
       try {
         const data = await readData<Record<string, unknown>>(item.file);
-        const arr = Object.values(data).find((v) => Array.isArray(v)) as unknown[] | undefined;
-        const count = arr?.length ?? "—";
+        const arrays = Object.values(data).filter((v) => Array.isArray(v)) as unknown[][];
+        const arr = arrays.reduce((a, b) => (a.length >= b.length ? a : b), []);
+        const count = arr.length || "—";
         return { ...item, count };
       } catch {
         return { ...item, count: "—" };

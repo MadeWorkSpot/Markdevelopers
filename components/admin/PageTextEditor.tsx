@@ -29,7 +29,7 @@ export default function PageTextEditor({
   async function handleSave() {
     setSaving(true);
     try {
-      await saveContent(fileName, { ...data, ...form });
+      await saveContent(fileName, form);
       toast.success("Saved");
       router.refresh();
     } catch {

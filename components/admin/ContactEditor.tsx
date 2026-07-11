@@ -16,7 +16,14 @@ type ContactData = {
 
 export default function ContactEditor({ data: initial }: { data: ContactData }) {
   const router = useRouter();
-  const [data, setData] = useState(initial);
+  const [data, setData] = useState({
+    email: initial.email ?? "",
+    phone: initial.phone ?? "",
+    address: initial.address ?? "",
+    heading: initial.heading ?? "",
+    description: initial.description ?? "",
+    hours: initial.hours ?? [],
+  });
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {

@@ -1,30 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useActionState } from "react";
 import { login } from "@/actions";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export function LoginForm() {
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [state, formAction, pending] = useActionState(login, null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setPending(true);
-    setError(null);
-
-    const form = new FormData(e.currentTarget);
-    const result = await login(null, form);
-    if (result?.error) setError(result.error);
-    setPending(false);
-  }
+  useEffect(() => {
+    if (state?.success) {
+      router.push("/admin/dashboard");
+      router.refresh();
+    }
+  }, [state, router]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {error && (
-        <p className="rounded-lg border border-red-900/50 bg-red-950/50 p-3 text-sm text-red-400">
-          {error}
-        </p>
+    <form action={formAction} className="space-y-5">
+      {state?.error && (
+        <div className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-400">
+          {state.error}
+        </div>
       )}
 
       <div>
@@ -75,7 +73,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-50"
       >
         {pending ? "Logging in..." : "Log in"}
       </button>
