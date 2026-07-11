@@ -41,7 +41,7 @@ export default async function AboutPage() {
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent" />
         <div className="relative z-10 px-4 md:px-8 lg:px-12 xl:px-24">
-          <h1 className="mt-4 max-w-4xl text-5xl md:text-6xl font-light leading-tight text-white">
+          <h1 className="mt-4 max-w-4xl text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white">
             {(about.hero?.heading ?? "").split("&").map((part, i) =>
               i === 0 ? (
                 part.trim() + " "
@@ -52,7 +52,7 @@ export default async function AboutPage() {
               )
             )}
           </h1>
-          <p className="mt-4 md:mt-8 max-w-3xl text-lg leading-snug text-white/60 sm:text-xl">
+          <p className="mt-3 md:mt-6 max-w-3xl text-md sm:text-lg md:text-xl leading-snug text-white/60">
             {about.hero?.description ?? ""}
           </p>
         </div>
@@ -61,7 +61,7 @@ export default async function AboutPage() {
       {about.companyStory?.content && (
         <section className="bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
           <div className="mx-auto max-w-full">
-            <h2 className="text-4xl font-normal leading-tight text-black sm:text-5xl">
+            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal leading-tight text-black">
               {about.companyStory.heading}
             </h2>
             <div className="mt-4 md:mt-8 max-w-full text-lg leading-snug text-black/60 sm:text-xl whitespace-pre-line">
@@ -88,7 +88,7 @@ export default async function AboutPage() {
 
       <section className="bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
         <div className="mx-auto max-w-full">
-          <h2 className="mt-4 text-4xl font-light leading-tight text-black sm:text-5xl">
+          <h2 className="mt-4 text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black">
             {(labels.teamHeading ?? "").split(" ").map((word, i, arr) =>
               i === arr.length - 1 ? (
                 <span key={i} className="font-medium">{word}</span>
@@ -110,7 +110,7 @@ export default async function AboutPage() {
                   )}
                 </div>
                 <div className="mt-2 md:mt-4">
-                  <h3 className="text-base font-medium text-black sm:text-lg">{m.name}</h3>
+                  <h3 className="text-sm sm:text-base md:text-lg font-medium text-black">{m.name}</h3>
                   <p className="mt-1 text-sm text-black/60">{m.role}</p>
                 </div>
               </div>
@@ -121,7 +121,7 @@ export default async function AboutPage() {
 
       <section className="bg-black px-4 py-16 md:px-8 lg:px-12 xl:px-24">
         <div className="mx-auto max-w-full">
-          <h2 className="mt-4 text-4xl font-light leading-tight text-white sm:text-5xl">
+          <h2 className="mt-4 text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white">
             {(labels.readyToStartHeading ?? "").split(" ").map((word, i, arr) =>
               i === arr.length - 1 ? (
                 <span key={i} className="block font-medium">{word}</span>

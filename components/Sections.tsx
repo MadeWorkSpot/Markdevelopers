@@ -15,22 +15,22 @@ export async function AboutSection() {
   const headingEnd = parts[1]?.trim() ?? "";
 
   return (
-    <section className="relative bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
+    <section className="relative bg-white px-4 py-16 md:py-24 md:px-8 lg:px-12 xl:px-24">
       <div className="absolute left-0 top-0 h-1 w-full bg-black" />
       <div className="mx-auto max-w-full">
         <div className="flex flex-col gap-12 lg:flex-row lg:items-center">
           <div className="lg:w-1/2">
-            <h2 className="text-4xl font-light leading-tight text-black sm:text-5xl">
+            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black">
               {headingStart}
               {headingEnd && (
                 <span className="block font-medium">{headingEnd}</span>
               )}
             </h2>
-            <p className="mt-4 md:mt-8 text-lg leading-relaxed text-black/60 sm:text-xl">
+            <p className="mt-4 md:mt-8 text-lg leading-snug text-black/60 sm:text-xl">
               {about.hero?.description ?? ""}
             </p>
             {(about.stats ?? []).length > 0 && (
-              <div className="mt-4 md:mt-8 grid grid-cols-2 gap-6 sm:grid-cols-4">
+              <div className="mt-6 md:mt-8 grid grid-cols-2 gap-6 sm:grid-cols-4">
                 {(about.stats ?? []).map((s) => (
                   <div key={s.label}>
                     <p className="text-3xl font-medium text-black sm:text-4xl">{s.number}</p>
@@ -75,10 +75,10 @@ export async function ServicesSection() {
   const lastWord = headingParts[headingParts.length - 1] ?? "";
 
   return (
-    <section id="services" className="relative bg-black px-4 py-24 md:px-8 lg:px-12 xl:px-24">
+    <section id="services" className="relative bg-black px-4 py-16 md:py-24 md:px-8 lg:px-12 xl:px-24">
       <div className="mx-auto max-w-full">
         <div className="flex flex-col gap-4">
-          <h2 className="text-4xl font-light leading-tight text-white sm:text-5xl">
+          <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white">
             {firstWords} {" "}
             <span className="font-medium">{lastWord}</span>
           </h2>
@@ -96,8 +96,8 @@ export async function ServicesSection() {
                 )}
               </div>
               <div className="mt-4">
-                <h3 className="text-lg font-medium text-white sm:text-xl">{s.title}</h3>
-                <p className="mt-2 text-base leading-relaxed text-white/60">{s.desc}</p>
+                <h3 className="text-md sm:text-base md:text-lg font-medium text-white">{s.title}</h3>
+                <p className="mt-2 text-sm md:text-md leading-tight text-white/60">{s.desc}</p>
               </div>
             </div>
           ))}
@@ -116,7 +116,7 @@ export async function ProjectsSection() {
     viewAllProjectsLabel: string;
   }>("site");
   return (
-    <section className="relative bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
+    <section className="relative bg-white px-4 py-16 md:py-24 md:px-8 lg:px-12 xl:px-24">
       <ProjectsCarousel
         projects={projects}
         heading={site.projectsSectionHeading ?? "Featured Projects"}
@@ -149,10 +149,10 @@ export async function ContactSection() {
   }>("site");
 
   return (
-    <section id="contact" className="bg-black px-4 py-16 md:px-8 lg:px-12 xl:px-24">
+    <section id="contact" className="bg-black px-4 py-16 md:py-24 md:px-8 lg:px-12 xl:px-24">
       <div className="mx-auto max-w-full">
         <div className="flex flex-col">
-          <h2 className="text-4xl font-light leading-tight text-white sm:text-5xl">
+          <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white">
             {contact.heading ?? ""}
           </h2>
           <p className="mt-4 md:mt-8 max-w-3xl text-lg leading-relaxed text-white/60 sm:text-xl">
@@ -173,7 +173,7 @@ export async function ContactSection() {
 
           <div className="space-y-12">
             <div>
-              <h3 className="text-base font-medium text-white sm:text-lg">{site.contactDetailsHeading || "Contact Details"}</h3>
+              <h3 className="text-sm sm:text-base md:text-lg font-medium text-white">{site.contactDetailsHeading || "Contact Details"}</h3>
               <div className="space-y-2 text-base text-white/60">
                 <p>{contact.email ?? ""}</p>
                 <p>{contact.phone ?? ""}</p>
@@ -183,7 +183,7 @@ export async function ContactSection() {
               </div>
             </div>
             <div>
-              <h3 className="text-base font-medium text-white sm:text-lg">{site.officeHoursHeading || "Office Hours"}</h3>
+              <h3 className="text-sm sm:text-base md:text-lg font-medium text-white">{site.officeHoursHeading || "Office Hours"}</h3>
               <div className="mt-4 space-y-3 text-sm text-white/60">
                 {(contact.hours ?? []).map((h) => (
                   <div key={h.day} className="flex justify-between border-b border-white/20 pb-2 last:border-b-0">
