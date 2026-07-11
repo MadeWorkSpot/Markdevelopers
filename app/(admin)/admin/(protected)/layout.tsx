@@ -11,6 +11,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   try {
     await adminAuth.verifySessionCookie(sessionCookie);
   } catch {
+    cookieStore.delete("session");
     redirect("/admin/login");
   }
   const unreadCount = await getUnreadCount();
