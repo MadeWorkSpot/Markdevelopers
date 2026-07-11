@@ -22,7 +22,7 @@ export default async function GalleryPage() {
   return (
     <section className="bg-black px-4 py-16 pt-36 md:px-8 lg:px-12 xl:px-24">
       <div className="mx-auto max-w-full">
-        <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white">
+        <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white text-balance">
           {firstWords} {" "}
           <span className="font-medium">{lastWord}</span>
         </h1>

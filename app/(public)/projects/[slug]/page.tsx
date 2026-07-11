@@ -51,7 +51,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </svg>
               All Projects
             </Link>
-            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-wide text-white">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-wide text-white text-balance">
               {project.title}
             </h1>
             {project.subtitle && (
@@ -67,7 +67,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <section className="relative bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
           <div className="absolute left-0 top-0 h-1 w-full bg-black" />
           <div className="mx-auto">
-            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black">
+            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black text-balance">
               About<span className="font-medium">{" "}Project</span>
             </h2>
             <p className="mt-4 md:mt-6 text-lg leading-relaxed text-black/60 sm:text-xl">
