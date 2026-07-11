@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify, importPKCS8, importSPKI } from "jose";
+import { SignJWT, jwtVerify, importPKCS8, importX509 } from "jose";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
 const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL || "";
@@ -457,7 +457,7 @@ async function getFirebasePublicKeys(): Promise<Record<string, CryptoKey>> {
   const data = (await res.json()) as Record<string, string>;
   const keys: Record<string, CryptoKey> = {};
   for (const [kid, pem] of Object.entries(data)) {
-    keys[kid] = await importSPKI(pem, "RS256");
+    keys[kid] = await importX509(pem, "RS256");
   }
   firebaseKeysCache = {
     keys,
