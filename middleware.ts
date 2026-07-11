@@ -3,14 +3,13 @@ import { NextResponse } from "next/server";
 
 const ADMIN_PREFIX = process.env.ADMIN_HOST_PREFIX || "admin.";
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostWithPort = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
   const host = hostWithPort.split(":")[0];
 
   const isAdmin = host.startsWith(ADMIN_PREFIX);
 
-  // ── Admin subdomain (admin.markdevelopers.in) ────────────────
   if (isAdmin) {
     if (!pathname.startsWith("/admin")) {
       return NextResponse.redirect(
@@ -19,24 +18,15 @@ export function proxy(request: NextRequest) {
     }
 
     const session = request.cookies.get("session")?.value;
+    const isLoginRoute = pathname === "/admin/login";
 
-    const publicRoutes = [
-      "/admin/login",
-      "/admin/signup",
-      "/admin/forgot-password",
-    ];
-    const isPublicRoute =
-      publicRoutes.includes(pathname) ||
-      pathname.startsWith("/admin/reset-password") ||
-      pathname.startsWith("/admin/verify-email");
-
-    if (isPublicRoute && session) {
+    if (isLoginRoute && session) {
       return NextResponse.redirect(
         new URL("/admin/dashboard", `${request.nextUrl.protocol}//${hostWithPort}`)
       );
     }
 
-    if (!isPublicRoute && !session) {
+    if (!isLoginRoute && !session) {
       return NextResponse.redirect(
         new URL("/admin/login", `${request.nextUrl.protocol}//${hostWithPort}`)
       );
@@ -45,7 +35,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── Public site (markdevelopers.in) ──────────────────────────
   if (pathname.startsWith("/admin")) {
     return NextResponse.rewrite(new URL("/_not-found", request.url));
   }

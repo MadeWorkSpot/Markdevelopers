@@ -15,5 +15,5 @@ export async function readData<T>(file: string): Promise<T> {
 
 export async function writeData<T>(file: string, data: T): Promise<void> {
   const db = getAdminDb();
-  await db.collection(COLLECTION).doc(file).set(data as FirebaseFirestore.DocumentData);
+  await db.collection(COLLECTION).doc(file).set(data as Record<string, unknown>);
 }
