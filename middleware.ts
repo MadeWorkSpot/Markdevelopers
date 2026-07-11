@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 const ADMIN_PREFIX = process.env.ADMIN_HOST_PREFIX || "admin.";
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostWithPort = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
   const host = hostWithPort.split(":")[0];
