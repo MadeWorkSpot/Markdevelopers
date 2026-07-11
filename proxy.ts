@@ -5,25 +5,13 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "").split(":")[0];
 
-  const isVercel = host.endsWith(".vercel.app");
-  const isLocalhost = host.startsWith("localhost");
-  const isAdminSubdomain = host.startsWith("admin.");
+  const isAdmin = host.startsWith("admin.");
 
-  const isProductionHost = isVercel || isLocalhost;
-
-  if (!isProductionHost && !isAdminSubdomain) {
-    const protocol = request.nextUrl.protocol;
-    return NextResponse.redirect(new URL(`${protocol}//${request.headers.get("host")}/`));
-  }
-
-  // ── Admin subdomain (admin.example.com / admin.xxx.vercel.app) ───
-  if (isAdminSubdomain) {
-    const baseHost = host.replace(/^admin\./, "");
-    const adminHost = host;
-
+  // ── Admin subdomain (admin.markdevelopers.in) ────────────────
+  if (isAdmin) {
     if (!pathname.startsWith("/admin")) {
       return NextResponse.redirect(
-        new URL("/admin/dashboard", `${request.nextUrl.protocol}//${adminHost}`)
+        new URL("/admin/dashboard", `${request.nextUrl.protocol}//${host}`)
       );
     }
 
@@ -41,7 +29,7 @@ export function proxy(request: NextRequest) {
       const session = request.cookies.get("session");
       if (!session?.value) {
         return NextResponse.redirect(
-          new URL("/admin/login", `${request.nextUrl.protocol}//${adminHost}`)
+          new URL("/admin/login", `${request.nextUrl.protocol}//${host}`)
         );
       }
     }
@@ -49,12 +37,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── Public host (markdevelopers.vercel.app / localhost:3000) ──
-  if (isProductionHost) {
-    if (pathname.startsWith("/admin")) {
-      return NextResponse.rewrite(new URL("/_not-found", request.url));
-    }
-    return NextResponse.next();
+  // ── Public site (markdevelopers.in) ──────────────────────────
+  if (pathname.startsWith("/admin")) {
+    return NextResponse.rewrite(new URL("/_not-found", request.url));
   }
 
   return NextResponse.next();
