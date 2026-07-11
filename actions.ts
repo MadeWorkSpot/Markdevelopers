@@ -7,17 +7,12 @@ import { readData, writeData } from "@/lib/data";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-const ADMIN_USERS = [
-  { email: "madewebspot@gmail.com", password: "Markdevelopers123#" },
-  { email: "markgroupkerala@gmail.com", password: "Markdevelopers123#" },
-];
-
 async function requireAdmin() {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session")?.value;
   if (!sessionCookie) throw new Error("Unauthorized");
   try {
-    await adminAuth.verifySessionCookie(sessionCookie);
+    await adminAuth.verifySessionCookie(sessionCookie, true);
   } catch {
     throw new Error("Unauthorized");
   }
@@ -38,18 +33,26 @@ export async function login(_prev: unknown, formData: FormData) {
     return { error: `Too many attempts. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
   }
 
-  const user = ADMIN_USERS.find(
-    (u) => u.email === email && u.password === password
-  );
-  if (!user) {
-    return { error: "Invalid email or password." };
-  }
-
   try {
-    const sessionCookie = await adminAuth.createAdminSessionCookie(
-      user.email,
-      60 * 60 * 24 * 1000
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    if (!apiKey) return { error: "Configuration error. Please try again later." };
+
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, returnSecureToken: true }),
+      }
     );
+    const data = await res.json();
+    if (!res.ok) {
+      return { error: "Invalid email or password." };
+    }
+
+    const sessionCookie = await adminAuth.createSessionCookie(data.idToken, {
+      expiresIn: 60 * 60 * 24 * 1000,
+    });
 
     const cookieStore = await cookies();
     cookieStore.set("session", sessionCookie, {
