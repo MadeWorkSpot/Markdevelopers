@@ -128,9 +128,9 @@ export default function Navbar({ menuLabel = "Menu", links }: { menuLabel?: stri
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-500 ${showBg ? "bg-black" : "bg-transparent"}`}>
       <div className="mx-auto flex items-center justify-between px-4 md:px-8 lg:px-12 xl:px-24 py-4">
         <Link href="/" className="text-xl font-bold tracking-tight text-white">
-          <img src='/markDevelopersLogo.png' alt="Logo" width={120} height={51} className="brightness-0 invert sm:w-[150px] sm:h-[64px]"/>
+          <img src='/markDevelopersLogo.png' alt="Logo" width={120} height={51} className="brightness-0 invert md:w-[150px] md:h-[64px]"/>
         </Link>
-        <div className="hidden sm:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} className="text-md text-white/70 transition-colors hover:text-white">
               {link.label}
@@ -140,7 +140,7 @@ export default function Navbar({ menuLabel = "Menu", links }: { menuLabel?: stri
         <button
           ref={toggleBtnRef}
           onClick={toggleMenu}
-          className="sm:hidden relative z-[60] flex items-center gap-3 text-white uppercase text-lg"
+          className="md:hidden relative z-[60] flex items-center gap-3 text-white uppercase text-lg"
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
           aria-controls="mobile-menu"
@@ -180,7 +180,7 @@ export default function Navbar({ menuLabel = "Menu", links }: { menuLabel?: stri
       {isMounted && (
         <>
           <div
-            className="sm:hidden fixed inset-0 bg-black/60 z-[55] will-change-[opacity]"
+            className="md:hidden fixed inset-0 bg-black/60 z-[55] will-change-[opacity]"
             style={{
               opacity: isVisible ? 1 : 0,
               transition: menuPhase === "entering" ? "none" : `opacity 500ms ${isLeaving ? EASE_IN : EASE_OUT}${isLeaving ? "" : " 200ms"}`,
@@ -194,7 +194,7 @@ export default function Navbar({ menuLabel = "Menu", links }: { menuLabel?: stri
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
-            className="sm:hidden fixed inset-0 z-[56] flex flex-col justify-center bg-black will-change-[transform]"
+            className="md:hidden fixed inset-0 z-[56] flex flex-col justify-center bg-black will-change-[transform]"
             style={{
               transform: isVisible ? "translate3d(0,0,0)" : "translate3d(0,-100%,0)",
               transition: menuPhase === "entering" ? "none" : `transform ${OPEN_DURATION}ms ${isLeaving ? EASE_IN : EASE_EXPO}`,

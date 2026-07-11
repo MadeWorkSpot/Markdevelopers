@@ -51,7 +51,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </svg>
               All Projects
             </Link>
-            <h1 className="text-4xl font-light leading-tight tracking-wide text-white sm:text-5xl md:text-6xl lg:text-7xl">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-wide text-white">
               {project.title}
             </h1>
             {project.subtitle && (
@@ -67,7 +67,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <section className="relative bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
           <div className="absolute left-0 top-0 h-1 w-full bg-black" />
           <div className="mx-auto">
-            <h2 className="text-4xl font-light leading-tight text-black sm:text-5xl">
+            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black">
               About<span className="font-medium">{" "}Project</span>
             </h2>
             <p className="mt-4 md:mt-6 text-lg leading-relaxed text-black/60 sm:text-xl">
@@ -76,20 +76,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
         </section>
       )}
-
-      <section className="bg-black px-4 py-16 md:px-8 lg:px-12 xl:px-24">
-        <div className="mx-auto max-w-4xl">
-          <Link
-            href="/projects"
-            className="inline-flex items-center gap-2 rounded-full border border-white px-8 py-3 text-sm font-medium uppercase tracking-wider text-white transition-all hover:bg-white hover:text-black"
-          >
-            All Projects
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-          </Link>
-        </div>
-      </section>
     </>
   );
 }

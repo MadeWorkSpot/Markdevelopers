@@ -76,12 +76,12 @@ export default function ProjectsCarousel({
 
   return (
     <div className="mx-auto max-w-full">
-      <h2 className="text-4xl font-light leading-tight text-black sm:text-5xl">
+      <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black">
         {firstWords}{" "}
         <span className="font-medium">{lastWord}</span>
       </h2>
 
-      <div className="relative mt-14">
+      <div className="relative mt-8">
         <div
           className="overflow-hidden"
           onTouchStart={onTouchStart}
@@ -108,7 +108,7 @@ export default function ProjectsCarousel({
                     )}
                   </div>
                   <div className="mt-5">
-                    <h3 className="text-base font-medium text-black sm:text-lg">{p.title}</h3>
+                    <h3 className="text-sm sm:text-base md:text-lg font-medium text-black">{p.title}</h3>
                     {p.subtitle && (
                       <p className="mt-1 text-base text-black/60">{p.subtitle}</p>
                     )}

@@ -41,7 +41,7 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-5 text-sm font-semibold tracking-wider uppercase text-white/50">{site.footerQuickLinksHeading ?? ""}</h3>
+            <h3 className="mb-5 text-xs sm:text-sm md:text-base font-semibold tracking-wider uppercase text-white/50">{site.footerQuickLinksHeading ?? ""}</h3>
             <div className="flex flex-col gap-3">
               {quickLinks.map((link) => (
                 <Link key={link.href} href={link.href} className="text-sm text-white/60 transition-colors hover:text-white">{link.label}</Link>
@@ -50,7 +50,7 @@ export default async function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-5 text-sm font-semibold tracking-wider uppercase text-white/50">{site.footerContactHeading ?? ""}</h3>
+            <h3 className="mb-5 text-xs sm:text-sm md:text-base font-semibold tracking-wider uppercase text-white/50">{site.footerContactHeading ?? ""}</h3>
             <div className="flex flex-col gap-3 text-sm text-white/60">
               <p>{contact.email ?? ""}</p>
               <p>{contact.phone ?? ""}</p>
