@@ -240,25 +240,8 @@ async function fsRunCount(
   collection: string,
   where?: { field: string; op: string; value: unknown }
 ): Promise<number> {
-  const headers = await authHeaders();
-  const structuredQuery = buildStructuredQuery(collection, where);
-  const res = await fetch(`${FIRESTORE_BASE}:runAggregationQuery`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      structuredAggregationQuery: {
-        structuredQuery,
-        aggregations: [{ alias: "count", count: {} }],
-      },
-    }),
-  });
-  if (!res.ok) throw new Error(`runAggregationQuery: ${res.status}`);
-  const results = (await res.json()) as Array<{
-    result?: { aggregateFields?: { count?: { integerValue?: string } } };
-  }>;
-  return Number(
-    results[0]?.result?.aggregateFields?.count?.integerValue || "0"
-  );
+  const docs = await fsRunQuery(collection, where);
+  return docs.length;
 }
 
 // ── Firestore-like classes ───────────────────────────────────
