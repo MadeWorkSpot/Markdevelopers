@@ -41,7 +41,7 @@ export function Toaster() {
   }, []);
 
   return (
-    <div style={{ position: "fixed", right: 16, top: 16, zIndex: 9999, display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ position: "fixed", right: 16, top: 16, zIndex: 9999, display: "flex", flexDirection: "column", gap: 8, maxWidth: "calc(100vw - 32px)" }}>
       {toasts.map((t) => (
         <div
           key={t.id}

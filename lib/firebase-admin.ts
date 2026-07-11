@@ -135,6 +135,19 @@ function fromRestDoc(
 
 // ── Firestore REST helpers ───────────────────────────────────
 
+const REST_OP_MAP: Record<string, string> = {
+  "==": "EQUAL",
+  "!=": "NOT_EQUAL",
+  "<": "LESS_THAN",
+  "<=": "LESS_THAN_OR_EQUAL",
+  ">": "GREATER_THAN",
+  ">=": "GREATER_THAN_OR_EQUAL",
+  "in": "IN",
+  "array-contains": "ARRAY_CONTAINS",
+  "array-contains-any": "ARRAY_CONTAINS_ANY",
+  "not-in": "NOT_IN",
+};
+
 function buildStructuredQuery(
   collection: string,
   where?: { field: string; op: string; value: unknown },
@@ -147,7 +160,7 @@ function buildStructuredQuery(
     q.where = {
       fieldFilter: {
         field: { fieldPath: where.field },
-        op: where.op,
+        op: REST_OP_MAP[where.op] || where.op,
         value: toRestValue(where.value),
       },
     };
@@ -535,7 +548,8 @@ async function createSessionCookie(
 }
 
 async function createAdminSessionCookie(
-  ..._args: unknown[]
+  _email: string,
+  _expiresIn: number
 ): Promise<string> {
   throw new Error("createAdminSessionCookie is disabled — use Firebase Auth verification instead");
 }
