@@ -62,7 +62,7 @@ export default async function AboutPage() {
         <section className="bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
           <div className="mx-auto max-w-full">
             <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal leading-tight text-black text-balance">
-              {about.companyStory.heading}
+              {about.companyStory?.heading}
             </h2>
             <div className="mt-4 md:mt-8 max-w-full text-lg leading-snug text-black/60 sm:text-xl whitespace-pre-line">
               {about.companyStory.content}

@@ -19,7 +19,7 @@ function getAdminApp(): App {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-  if (clientEmail && privateKey) {
+  if (clientEmail && privateKey && privateKey.length > 0) {
     adminApp = initializeApp({
       credential: cert({
         projectId,
@@ -50,12 +50,16 @@ export function getAdminAuth(): Auth {
 
 export const adminDb = new Proxy({} as Firestore, {
   get(_, prop) {
-    return (getAdminDb() as unknown as Record<string | symbol, unknown>)[prop];
+    const db = getAdminDb();
+    const val = (db as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof val === "function" ? val.bind(db) : val;
   },
 });
 
 export const adminAuth = new Proxy({} as Auth, {
   get(_, prop) {
-    return (getAdminAuth() as unknown as Record<string | symbol, unknown>)[prop];
+    const auth = getAdminAuth();
+    const val = (auth as unknown as Record<string | symbol, unknown>)[prop];
+    return typeof val === "function" ? val.bind(auth) : val;
   },
 });

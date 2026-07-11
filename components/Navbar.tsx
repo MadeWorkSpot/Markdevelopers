@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useCallback, useRef, startTransition } from "react";
+import { useState, useEffect, useCallback, useRef, startTransition } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useIsomorphicLayoutEffect } from "@/lib/useIsomorphicLayoutEffect";
 
 const defaultLinks = [
   { href: "/", label: "Home" },
@@ -45,7 +46,7 @@ export default function Navbar({ menuLabel = "Menu", links }: { menuLabel?: stri
     startTransition(() => setMenuOpen(false));
   }, [pathname]);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (menuOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -75,6 +76,12 @@ export default function Navbar({ menuLabel = "Menu", links }: { menuLabel?: stri
         setMenuPhase("hidden");
         closeTimerRef.current = null;
       }, closeTotal);
+      return () => {
+        if (closeTimerRef.current) {
+          clearTimeout(closeTimerRef.current);
+          closeTimerRef.current = null;
+        }
+      };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuOpen]);
@@ -128,7 +135,7 @@ export default function Navbar({ menuLabel = "Menu", links }: { menuLabel?: stri
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-500 ${showBg ? "bg-black" : "bg-transparent"}`}>
       <div className="mx-auto flex items-center justify-between px-4 md:px-8 lg:px-12 xl:px-24 py-4">
         <Link href="/" className="text-xl font-bold tracking-tight text-white">
-          <img src='/markDevelopersLogo.png' alt="Logo" width={120} height={51} className="brightness-0 invert md:w-[150px] md:h-[64px]"/>
+          <img src='/markDevelopersLogo.png' alt="Mark Developers" width={120} height={51} className="brightness-0 invert md:w-[150px] md:h-[64px]"/>
         </Link>
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (

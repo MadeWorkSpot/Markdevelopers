@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { logout } from "@/actions";
 import { Toaster } from "./Toaster";
 import { ConfirmProvider } from "./ConfirmDialog";
@@ -20,6 +21,11 @@ const navItems = [
 
 export default function AdminShell({ children, unreadCount = 0 }: { children: React.ReactNode; unreadCount?: number }) {
   const pathname = usePathname();
+  const [siteHost, setSiteHost] = useState("markdevelopers.in");
+
+  useEffect(() => {
+    setSiteHost(window.location.hostname.replace(/^admin\./, ""));
+  }, []);
 
   return (
     <ConfirmProvider>
@@ -55,7 +61,7 @@ export default function AdminShell({ children, unreadCount = 0 }: { children: Re
           </nav>
           <div className="border-t border-zinc-800 px-3 py-4">
             <a
-              href={`https://${typeof window !== "undefined" ? window.location.hostname.replace(/^admin\./, "") : "markdevelopers.in"}`}
+              href={`https://${siteHost}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white/80"
