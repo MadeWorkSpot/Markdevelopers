@@ -9,7 +9,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const sessionCookie = cookieStore.get("session")?.value;
   if (!sessionCookie) redirect("/admin/login");
   try {
-    await adminAuth.verifySessionCookie(sessionCookie, true);
+    await adminAuth.verifySessionCookie(sessionCookie);
   } catch {
     redirect("/admin/login");
   }

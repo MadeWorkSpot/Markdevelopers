@@ -505,6 +505,28 @@ async function createSessionCookie(
   return jwt;
 }
 
+async function createAdminSessionCookie(
+  email: string,
+  expiresIn: number
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const jwt = await new SignJWT({
+    iss: `https://sessiontoken.firebase.google.com/${PROJECT_ID}`,
+    aud: PROJECT_ID,
+    user_id: email,
+    email,
+    email_verified: true,
+    auth_time: now,
+  })
+    .setProtectedHeader({ alg: "HS256", kid: "admin-session" })
+    .setSubject(email)
+    .setIssuedAt(now)
+    .setExpirationTime(Math.floor(expiresIn / 1000))
+    .sign(await getSessionKey());
+
+  return jwt;
+}
+
 async function verifySessionCookie(
   cookie: string,
   checkRevoked?: boolean
@@ -573,6 +595,13 @@ class AuthRest {
     options: { expiresIn: number }
   ): Promise<string> {
     return createSessionCookie(idToken, options.expiresIn);
+  }
+
+  async createAdminSessionCookie(
+    email: string,
+    expiresIn: number
+  ): Promise<string> {
+    return createAdminSessionCookie(email, expiresIn);
   }
 
   async createUser(data: {
@@ -652,6 +681,10 @@ export interface AdminAuth {
   createSessionCookie(
     idToken: string,
     options: { expiresIn: number }
+  ): Promise<string>;
+  createAdminSessionCookie(
+    email: string,
+    expiresIn: number
   ): Promise<string>;
   createUser(data: {
     email: string;

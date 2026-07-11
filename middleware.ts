@@ -10,7 +10,6 @@ export function middleware(request: NextRequest) {
 
   const isAdmin = host.startsWith(ADMIN_PREFIX);
 
-  // ── Admin subdomain (admin.markdevelopers.in) ────────────────
   if (isAdmin) {
     if (!pathname.startsWith("/admin")) {
       return NextResponse.redirect(
@@ -19,24 +18,15 @@ export function middleware(request: NextRequest) {
     }
 
     const session = request.cookies.get("session")?.value;
+    const isLoginRoute = pathname === "/admin/login";
 
-    const publicRoutes = [
-      "/admin/login",
-      "/admin/signup",
-      "/admin/forgot-password",
-    ];
-    const isPublicRoute =
-      publicRoutes.includes(pathname) ||
-      pathname.startsWith("/admin/reset-password") ||
-      pathname.startsWith("/admin/verify-email");
-
-    if (isPublicRoute && session) {
+    if (isLoginRoute && session) {
       return NextResponse.redirect(
         new URL("/admin/dashboard", `${request.nextUrl.protocol}//${hostWithPort}`)
       );
     }
 
-    if (!isPublicRoute && !session) {
+    if (!isLoginRoute && !session) {
       return NextResponse.redirect(
         new URL("/admin/login", `${request.nextUrl.protocol}//${hostWithPort}`)
       );
@@ -45,7 +35,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── Public site (markdevelopers.in) ──────────────────────────
   if (pathname.startsWith("/admin")) {
     return NextResponse.rewrite(new URL("/_not-found", request.url));
   }
