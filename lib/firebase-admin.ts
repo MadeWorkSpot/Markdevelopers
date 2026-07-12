@@ -17,9 +17,22 @@ let tokenCache: { token: string; expiresAt: number } | null = null;
 let privateKeyPromise: Promise<CryptoKey> | null = null;
 let tokenPromise: Promise<string> | null = null;
 
+function normalizePem(raw: string): string {
+  let s = raw.replace(/\r\n/g, "\n").replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").trim();
+  const header = "-----BEGIN PRIVATE KEY-----";
+  const footer = "-----END PRIVATE KEY-----";
+  const hIdx = s.indexOf(header);
+  const fIdx = s.indexOf(footer);
+  if (hIdx !== -1 && fIdx !== -1) {
+    const body = s.slice(hIdx + header.length, fIdx).replace(/[^A-Za-z0-9+/=]/g, "");
+    s = `${header}\n${body.match(/.{1,64}/g)?.join("\n") ?? body}\n${footer}`;
+  }
+  return s;
+}
+
 function getPrivateKey(): Promise<CryptoKey> {
   if (!privateKeyPromise) {
-    const pem = PRIVATE_KEY.replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+    const pem = normalizePem(PRIVATE_KEY);
     privateKeyPromise = importPKCS8(pem, "RS256");
   }
   return privateKeyPromise;
