@@ -41,7 +41,7 @@ export default async function AboutPage() {
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent" />
         <div className="relative z-10 px-4 md:px-8 lg:px-12 xl:px-24">
-          <h1 className="mt-4 max-w-4xl text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-white text-balance">
+          <h1 className="mt-4 max-w-4xl text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-light leading-tight text-white text-balance">
             {(about.hero?.heading ?? "").split("&").map((part, i) =>
               i === 0 ? (
                 part.trim() + " "
@@ -61,10 +61,10 @@ export default async function AboutPage() {
       {about.companyStory?.content && (
         <section className="bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
           <div className="mx-auto max-w-full">
-            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-normal leading-tight text-black text-balance">
+            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-normal leading-tight text-black text-balance">
               {about.companyStory?.heading}
             </h2>
-            <div className="mt-4 md:mt-8 max-w-full text-lg leading-snug text-black/60 sm:text-xl whitespace-pre-line">
+            <div className="mt-4 md:mt-6 max-w-full leading-snug text-black/60 xs:text-md md:text-lg whitespace-pre-line">
               {about.companyStory.content}
             </div>
           </div>
@@ -76,10 +76,10 @@ export default async function AboutPage() {
           <div className="grid gap-16 lg:grid-cols-2">
             {(about.values ?? []).map((v) => (
               <div key={v.title}>
-                <span className="text-md font-medium uppercase text-white/50">
+                <span className="text-md md:text-lg font-medium uppercase text-white/50">
                   {v.title}
                 </span>
-                <p className="mt-4 leading-tight text-white/60 sm:text-lg">{v.desc}</p>
+                <p className="mt-4 leading-tight text-white/60 xs:text-2x md:text-md">{v.desc}</p>
               </div>
             ))}
           </div>
@@ -88,7 +88,7 @@ export default async function AboutPage() {
 
       <section className="bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
         <div className="mx-auto max-w-full">
-          <h2 className="mt-4 text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black text-balance">
+          <h2 className="mt-4 text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-light leading-tight text-black text-balance">
             {(labels.teamHeading ?? "").split(" ").map((word, i, arr) =>
               i === arr.length - 1 ? (
                 <span key={i} className="font-medium">{word}</span>
@@ -105,7 +105,7 @@ export default async function AboutPage() {
                     <img
                       src={m.image}
                       alt={m.name}
-                      className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                     />
                   )}
                 </div>

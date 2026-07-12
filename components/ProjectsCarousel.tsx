@@ -84,7 +84,7 @@ export default function ProjectsCarousel({
 
   return (
     <div className="mx-auto max-w-full">
-      <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black text-balance">
+      <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-light leading-tight text-black text-balance">
         {firstWords}{" "}
         <span className="font-medium">{lastWord}</span>
       </h2>
@@ -111,7 +111,7 @@ export default function ProjectsCarousel({
                       <img
                         src={p.image}
                         alt={p.title}
-                        className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
+                        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                       />
                     )}
                   </div>

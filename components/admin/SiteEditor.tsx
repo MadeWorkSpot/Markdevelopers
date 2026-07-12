@@ -27,6 +27,11 @@ type SiteData = {
   contactEmailPlaceholder: string;
   contactMessageLabel: string;
   contactMessagePlaceholder: string;
+  socialPhone: string;
+  socialWhatsapp: string;
+  socialInstagram: string;
+  socialCustomUrl: string;
+  socialCustomLabel: string;
 };
 
 export default function SiteEditor({ data: initial }: { data: SiteData }) {
@@ -53,6 +58,11 @@ export default function SiteEditor({ data: initial }: { data: SiteData }) {
     contactEmailPlaceholder: initial.contactEmailPlaceholder ?? "",
     contactMessageLabel: initial.contactMessageLabel ?? "",
     contactMessagePlaceholder: initial.contactMessagePlaceholder ?? "",
+    socialPhone: initial.socialPhone ?? "",
+    socialWhatsapp: initial.socialWhatsapp ?? "",
+    socialInstagram: initial.socialInstagram ?? "",
+    socialCustomUrl: initial.socialCustomUrl ?? "",
+    socialCustomLabel: initial.socialCustomLabel ?? "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -106,6 +116,21 @@ export default function SiteEditor({ data: initial }: { data: SiteData }) {
         </Field>
         <Field label="Copyright">
           <input value={data.footerCopyright} onChange={(e) => setData((d) => ({ ...d, footerCopyright: e.target.value }))} className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+        </Field>
+        <Field label="Phone Number">
+          <input value={data.socialPhone} onChange={(e) => setData((d) => ({ ...d, socialPhone: e.target.value }))} placeholder="+91 12345 67890" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+        </Field>
+        <Field label="WhatsApp Link" span>
+          <input value={data.socialWhatsapp} onChange={(e) => setData((d) => ({ ...d, socialWhatsapp: e.target.value }))} placeholder="https://wa.me/1234567890" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+        </Field>
+        <Field label="Instagram Link" span>
+          <input value={data.socialInstagram} onChange={(e) => setData((d) => ({ ...d, socialInstagram: e.target.value }))} placeholder="https://instagram.com/yourusername" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+        </Field>
+        <Field label="Custom Social Link URL">
+          <input value={data.socialCustomUrl} onChange={(e) => setData((d) => ({ ...d, socialCustomUrl: e.target.value }))} placeholder="https://facebook.com/yourpage" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+        </Field>
+        <Field label="Custom Social Link Label">
+          <input value={data.socialCustomLabel} onChange={(e) => setData((d) => ({ ...d, socialCustomLabel: e.target.value }))} placeholder="Facebook" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
         </Field>
       </Section>
 

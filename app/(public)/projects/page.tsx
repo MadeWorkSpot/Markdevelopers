@@ -23,11 +23,11 @@ export default async function ProjectsPage() {
   return (
     <section className="bg-white px-4 py-24 pt-36 md:px-8 lg:px-12 xl:px-24">
       <div className="mx-auto max-w-full">
-        <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black text-balance">
+        <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-light leading-tight text-black text-balance">
           {firstWords}{" "}
           <span className="font-medium">{lastWord}</span>
         </h1>
-        <p className="mt-4 md:mt-8 max-w-3xl text-md md:text-lg lg:text-xl leading-snug text-black/60">
+        <p className="mt-4 md:mt-6 max-w-3xl text-md md:text-lg lg:text-xl leading-snug text-black/60">
           {data.pageSubtitle ?? ""}
         </p>
         <div className="mt-4 md:mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -42,7 +42,7 @@ export default async function ProjectsPage() {
                   <img
                     src={p.image}
                     alt={p.title}
-                    className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                   />
                 )}
               </div>
