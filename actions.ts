@@ -47,6 +47,7 @@ export async function login(_prev: unknown, formData: FormData) {
     return { error: `Too many attempts. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
   }
 
+  let sessionCookie: string;
   try {
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
     if (!apiKey) return { error: "Configuration error. Please try again later." };
@@ -64,23 +65,22 @@ export async function login(_prev: unknown, formData: FormData) {
       return { error: "Invalid email or password." };
     }
 
-    const sessionCookie = await adminAuth.createSessionCookie(data.idToken, {
+    sessionCookie = await adminAuth.createSessionCookie(data.idToken, {
       expiresIn: 60 * 60 * 24 * 1000,
-    });
-
-    const cookieStore = await cookies();
-    cookieStore.set("session", sessionCookie, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
-      maxAge: 60 * 60 * 24,
     });
   } catch {
     return { error: "Authentication failed." };
   }
 
-  return { success: true };
+  const cookieStore = await cookies();
+  cookieStore.set("session", sessionCookie, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: 60 * 60 * 24,
+  });
+  redirect("/admin/dashboard");
 }
 
 export async function logout() {
