@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getClientIp(req);
-    const rl = checkRateLimit("upload", ip);
+    const rl = await checkRateLimit("upload", ip);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many uploads. Try again later." }, { status: 429 });
     }
@@ -61,7 +61,9 @@ export async function POST(req: NextRequest) {
       timestamp: String(timestamp),
     };
     const sorted = Object.keys(paramsToSign).sort().map(k => `${k}=${paramsToSign[k]}`).join("&");
-    const sigBuffer = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(sorted + apiSecret));
+    // SHA-256 is used instead of SHA-1 for stronger signature security.
+    // Cloudinary supports SHA-256 via the sha_type parameter.
+    const sigBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sorted + apiSecret));
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
     const buffer = await file.arrayBuffer();
@@ -75,6 +77,7 @@ export async function POST(req: NextRequest) {
     uploadForm.append("quality", "auto");
     uploadForm.append("fetch_format", "auto");
     uploadForm.append("signature", signature);
+    uploadForm.append("sha_type", "sha256");
 
     const res = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,

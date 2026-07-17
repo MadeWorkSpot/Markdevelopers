@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { readData, writeData } from "@/lib/data";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 const VALID_CONTENT_TYPES = [
   "carousel", "services", "projects", "gallery",
@@ -26,7 +27,11 @@ async function requireAdmin() {
   const sessionCookie = cookieStore.get("session")?.value;
   if (!sessionCookie) throw new Error("Unauthorized");
   try {
-    await adminAuth.verifySessionCookie(sessionCookie, false);
+    // checkRevoked: true ensures that if a user's tokens were revoked
+    // (e.g. after logout or password change), they cannot continue using
+    // a previously-issued session cookie. This closes the window where
+    // a stolen cookie remains valid after the user logs out.
+    await adminAuth.verifySessionCookie(sessionCookie, true);
   } catch {
     throw new Error("Unauthorized");
   }
@@ -42,7 +47,7 @@ export async function login(_prev: unknown, formData: FormData) {
     return { error: "Email and password are required." };
   }
 
-  const rl = checkRateLimit(`login:${email}`);
+  const rl = await checkRateLimit(`login:${email}`);
   if (!rl.allowed) {
     return { error: `Too many attempts. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
   }
@@ -117,7 +122,16 @@ export async function submitContact(_prev: unknown, formData: FormData) {
     return { error: "Message must be 5000 characters or less." };
   }
 
-  const rl = checkRateLimit(`contact:${email}`);
+  // Verify Cloudflare Turnstile CAPTCHA token.
+  // Prevents automated spam submissions. If TURNSTILE_SECRET_KEY is not set,
+  // verification is skipped in development but enforced in production.
+  const turnstileToken = formData.get("cf-turnstile-response") as string | null;
+  const turnstileResult = await verifyTurnstile(turnstileToken);
+  if (!turnstileResult.success) {
+    return { error: "Security verification failed. Please try again." };
+  }
+
+  const rl = await checkRateLimit(`contact:${email}`);
   if (!rl.allowed) {
     return { error: `Too many messages. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
   }

@@ -17,6 +17,12 @@
       "service": "admin"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "81791a6b6e2c4d2f80a0fcd7e0d69bcf"
+    }
+  ],
   "images": {
     "binding": "IMAGES"
   },
