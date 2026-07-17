@@ -8,7 +8,10 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const sessionCookie = cookieStore.get("session")?.value;
   if (!sessionCookie) redirect("/admin/login");
   try {
-    await adminAuth.verifySessionCookie(sessionCookie, false);
+    // checkRevoked: true — if the user logged out or had tokens revoked,
+    // this session cookie is no longer valid. Without this check, a stolen
+    // cookie remains usable until it naturally expires (24h).
+    await adminAuth.verifySessionCookie(sessionCookie, true);
   } catch {
     redirect("/admin/login");
   }

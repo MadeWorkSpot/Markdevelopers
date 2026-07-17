@@ -1,7 +1,10 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useActionState, useId, useState } from "react";
 import { submitContact } from "@/actions";
+import TurnstileWidget from "@/components/TurnstileWidget";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 export default function ContactForm({
   nameLabel = "Name",
@@ -21,6 +24,7 @@ export default function ContactForm({
   sendMessageLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(submitContact, null);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const id = useId();
 
   return (
@@ -67,6 +71,18 @@ export default function ContactForm({
           className="mt-2 w-full resize-none border border-white/20 bg-transparent px-4 py-3 text-sm text-white outline-none transition-colors focus:border-white"
         />
       </div>
+      {TURNSTILE_SITE_KEY && (
+        <div className="sm:col-span-2">
+          <TurnstileWidget
+            siteKey={TURNSTILE_SITE_KEY}
+            onTokenChange={setTurnstileToken}
+          />
+        </div>
+      )}
+      {/* Turnstile token — hidden field submitted with the form */}
+      {TURNSTILE_SITE_KEY && (
+        <input type="hidden" name="cf-turnstile-response" value={turnstileToken} />
+      )}
       <div className="sm:col-span-2">
         <button
           type="submit"

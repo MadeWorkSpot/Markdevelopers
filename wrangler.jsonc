@@ -1,31 +1,40 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "main": ".open-next/worker.js",
-  "name": "markdev",
-  "compatibility_date": "2024-12-30",
-  "compatibility_flags": [
-    "nodejs_compat",
-    "global_fetch_strictly_public"
-  ],
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
-  },
-  "services": [
-    {
-      "binding": "WORKER_SELF_REFERENCE",
-      "service": "markdev"
-    }
-  ],
-  "images": {
-    "binding": "IMAGES"
-  },
-  "observability": {
-    "enabled": true,
-    "logs": {
-      "enabled": true,
-      "persist": true,
-      "invocation_logs": true
-    }
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	"name": "markdev",
+	"compatibility_date": "2024-12-30",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"services": [
+		{
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "markdev"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMIT_KV",
+			// Replace with your KV namespace ID after running:
+			//   npx wrangler kv namespace create RATE_LIMIT_KV
+			"id": "81791a6b6e2c4d2f80a0fcd7e0d69bcf",
+			"remote": true
+		}
+	],
+	"images": {
+		"binding": "IMAGES"
+	},
+	"observability": {
+		"enabled": true,
+		"logs": {
+			"enabled": true,
+			"persist": true,
+			"invocation_logs": true
+		}
+	}
 }
