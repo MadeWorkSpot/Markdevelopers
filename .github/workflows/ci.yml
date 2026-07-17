@@ -109,13 +109,6 @@ jobs:
           PUBLIC_HOST: ${{ secrets.PUBLIC_HOST }}
           ADMIN_HOST: ${{ secrets.ADMIN_HOST }}
 
-      - name: Upload build output
-        uses: actions/upload-artifact@v4
-        with:
-          name: next-build
-          path: .next
-          retention-days: 1
-
   deploy:
     name: Deploy to Cloudflare
     needs: build
@@ -134,12 +127,6 @@ jobs:
           cache: npm
 
       - run: npm ci
-
-      - name: Download build output
-        uses: actions/download-artifact@v4
-        with:
-          name: next-build
-          path: .next
 
       - name: Build for Cloudflare
         run: npx opennextjs-cloudflare build
