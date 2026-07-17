@@ -51,8 +51,14 @@ export async function POST(req: NextRequest) {
 
     const timestamp = Math.round(Date.now() / 1000);
     const folder = "markdev";
-    const paramsToSign = { folder, timestamp };
-    const sorted = Object.keys(paramsToSign).sort().map(k => `${k}=${paramsToSign[k as keyof typeof paramsToSign]}`).join("&");
+    const paramsToSign: Record<string, string> = {
+      fetch_format: "auto",
+      folder,
+      format: "webp",
+      quality: "auto",
+      timestamp: String(timestamp),
+    };
+    const sorted = Object.keys(paramsToSign).sort().map(k => `${k}=${paramsToSign[k]}`).join("&");
     const strToSign = sorted + API_SECRET;
     const sigBuffer = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(strToSign));
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
@@ -62,11 +68,10 @@ export async function POST(req: NextRequest) {
     uploadForm.append("api_key", API_KEY);
     uploadForm.append("timestamp", String(timestamp));
     uploadForm.append("folder", folder);
-    uploadForm.append("signature", signature);
-    uploadForm.append("resource_type", "image");
     uploadForm.append("format", "webp");
     uploadForm.append("quality", "auto");
     uploadForm.append("fetch_format", "auto");
+    uploadForm.append("signature", signature);
 
     const res = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
