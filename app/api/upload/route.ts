@@ -52,10 +52,8 @@ export async function POST(req: NextRequest) {
     const timestamp = Math.round(Date.now() / 1000);
     const folder = "markdev";
     const paramsToSign: Record<string, string> = {
-      fetch_format: "auto",
       folder,
       format: "webp",
-      quality: "auto",
       timestamp: String(timestamp),
     };
     const sorted = Object.keys(paramsToSign).sort().map(k => `${k}=${paramsToSign[k]}`).join("&");
