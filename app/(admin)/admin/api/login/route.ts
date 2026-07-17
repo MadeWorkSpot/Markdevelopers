@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { adminAuth } from "@/lib/firebase-admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -8,19 +10,19 @@ export async function POST(request: Request) {
   const password = formData.get("password") as string;
 
   if (!email || !password) {
-    return new Response(null, { status: 302, headers: { Location: "/admin/login" } });
+    redirect("/admin/login");
   }
 
   const rl = checkRateLimit(`login:${email}`, ip);
   if (!rl.allowed) {
-    return new Response(null, { status: 302, headers: { Location: "/admin/login" } });
+    redirect("/admin/login");
   }
 
   let sessionCookie: string;
   try {
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
     if (!apiKey) {
-      return new Response(null, { status: 302, headers: { Location: "/admin/login" } });
+      redirect("/admin/login");
     }
 
     const res = await fetch(
@@ -33,21 +35,24 @@ export async function POST(request: Request) {
     );
     const data = await res.json();
     if (!res.ok) {
-      return new Response(null, { status: 302, headers: { Location: "/admin/login" } });
+      redirect("/admin/login");
     }
 
     sessionCookie = await adminAuth.createSessionCookie(data.idToken, {
       expiresIn: 60 * 60 * 24 * 1000,
     });
   } catch {
-    return new Response(null, { status: 302, headers: { Location: "/admin/login" } });
+    redirect("/admin/login");
   }
 
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: "/admin/dashboard",
-      "Set-Cookie": `session=${sessionCookie}; HttpOnly; Path=/; Max-Age=${60 * 60 * 24}; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
-    },
+  const cookieStore = await cookies();
+  cookieStore.set("session", sessionCookie, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: 60 * 60 * 24,
   });
+
+  redirect("/admin/dashboard");
 }

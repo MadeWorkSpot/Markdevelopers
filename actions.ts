@@ -191,6 +191,9 @@ export async function addArrayItem(
   item: Record<string, unknown>
 ) {
   await requireAdmin();
+  if (!VALID_CONTENT_TYPES.includes(type)) {
+    return { success: false, error: "Invalid content type" };
+  }
   const data = await readData<Record<string, unknown>>(type);
   const arr = (data[key] as unknown[]) ?? [];
   (data as Record<string, unknown>)[key] = [...arr, item];
@@ -206,6 +209,9 @@ export async function updateArrayItem(
   item: Record<string, unknown>
 ) {
   await requireAdmin();
+  if (!VALID_CONTENT_TYPES.includes(type)) {
+    return { success: false, error: "Invalid content type" };
+  }
   const data = await readData<Record<string, unknown[]>>(type);
   const arr = data[key] ?? [];
   if (index < 0 || index >= arr.length) {
@@ -231,6 +237,9 @@ export async function deleteArrayItem(
   index: number
 ) {
   await requireAdmin();
+  if (!VALID_CONTENT_TYPES.includes(type)) {
+    return { success: false, error: "Invalid content type" };
+  }
   const data = await readData<Record<string, unknown[]>>(type);
   data[key] = (data[key] ?? []).filter((_, i) => i !== index);
   await writeData(type, data);
@@ -245,6 +254,9 @@ export async function reorderArray(
   toIndex: number
 ) {
   await requireAdmin();
+  if (!VALID_CONTENT_TYPES.includes(type)) {
+    return { success: false, error: "Invalid content type" };
+  }
   const data = await readData<Record<string, unknown[]>>(type);
   const arr = [...(data[key] ?? [])];
   if (fromIndex < 0 || fromIndex >= arr.length || toIndex < 0 || toIndex >= arr.length) {

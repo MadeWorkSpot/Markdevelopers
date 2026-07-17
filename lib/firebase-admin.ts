@@ -543,13 +543,6 @@ async function createSessionCookie(
   return jwt;
 }
 
-async function createAdminSessionCookie(
-  _email: string,
-  _expiresIn: number
-): Promise<string> {
-  throw new Error("createAdminSessionCookie is disabled — use Firebase Auth verification instead");
-}
-
 async function verifySessionCookie(
   cookie: string,
   checkRevoked?: boolean
@@ -623,13 +616,6 @@ class AuthRest {
     options: { expiresIn: number }
   ): Promise<string> {
     return createSessionCookie(idToken, options.expiresIn);
-  }
-
-  async createAdminSessionCookie(
-    email: string,
-    expiresIn: number
-  ): Promise<string> {
-    return createAdminSessionCookie(email, expiresIn);
   }
 
   async createUser(data: {
@@ -709,10 +695,6 @@ export interface AdminAuth {
   createSessionCookie(
     idToken: string,
     options: { expiresIn: number }
-  ): Promise<string>;
-  createAdminSessionCookie(
-    email: string,
-    expiresIn: number
   ): Promise<string>;
   createUser(data: {
     email: string;
