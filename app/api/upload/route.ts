@@ -6,10 +6,6 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif"];
 const MAX_SIZE = 10 * 1024 * 1024;
 
-const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME!;
-const API_KEY = process.env.CLOUDINARY_API_KEY!;
-const API_SECRET = process.env.CLOUDINARY_API_SECRET!;
-
 export async function POST(req: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -49,42 +45,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      return NextResponse.json({ error: "Upload configuration error" }, { status: 500 });
+    }
+
     const timestamp = Math.round(Date.now() / 1000);
     const folder = "markdev";
+
     const paramsToSign: Record<string, string> = {
       folder,
-      format: "webp",
       timestamp: String(timestamp),
     };
     const sorted = Object.keys(paramsToSign).sort().map(k => `${k}=${paramsToSign[k]}`).join("&");
-    const strToSign = sorted + API_SECRET;
-    const sigBuffer = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(strToSign));
+    const sigBuffer = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(sorted + apiSecret));
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
+    const buffer = await file.arrayBuffer();
+    const newFile = new File([buffer], file.name, { type: file.type });
+
     const uploadForm = new FormData();
-    uploadForm.append("file", file);
-    uploadForm.append("api_key", API_KEY);
+    uploadForm.append("file", newFile);
+    uploadForm.append("api_key", apiKey);
     uploadForm.append("timestamp", String(timestamp));
     uploadForm.append("folder", folder);
-    uploadForm.append("format", "webp");
     uploadForm.append("quality", "auto");
     uploadForm.append("fetch_format", "auto");
     uploadForm.append("signature", signature);
 
     const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
       { method: "POST", body: uploadForm }
     );
 
     const data = await res.json();
     if (!res.ok || !data.secure_url) {
-      console.error("Cloudinary error:", data);
-      return NextResponse.json({ error: data.error?.message || "Upload failed" }, { status: 500 });
+      console.error("Cloudinary error:", JSON.stringify(data));
+      return NextResponse.json({ error: data.error?.message || JSON.stringify(data), status: res.status }, { status: 500 });
     }
 
     return NextResponse.json({ url: data.secure_url });
   } catch (e) {
     console.error("Upload error:", e);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
