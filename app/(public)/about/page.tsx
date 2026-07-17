@@ -105,6 +105,7 @@ export default async function AboutPage() {
                     <img
                       src={m.image}
                       alt={m.name}
+                      loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                     />
                   )}

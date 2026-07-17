@@ -51,6 +51,7 @@ export async function AboutSection() {
               <img
                 src={about.hero.image}
                 alt={about.hero.alt}
+                loading="lazy"
                 className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
               />
             )}

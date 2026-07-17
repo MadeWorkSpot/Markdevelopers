@@ -36,6 +36,7 @@ export default async function GalleryPage() {
                 <img
                   src={img.src}
                   alt={img.alt}
+                  loading="lazy"
                   className="w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                 />
               )}
