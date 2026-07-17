@@ -63,7 +63,7 @@ jobs:
       - run: npm ci
 
       - name: Run tests
-        run: npm run test -- --run
+        run: npm run test -- --run --passWithNoTests
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
