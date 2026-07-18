@@ -121,4 +121,30 @@ describe("checkRateLimit (in-memory fallback)", () => {
     const allowedB = await checkRateLimit(keyB);
     expect(allowedB.allowed).toBe(true);
   });
+
+  it("respects custom maxAttempts parameter", async () => {
+    const key = "test-custom-limit";
+    for (let i = 0; i < 10; i++) {
+      const result = await checkRateLimit(key, undefined, 10);
+      expect(result.allowed).toBe(true);
+    }
+    const blocked = await checkRateLimit(key, undefined, 10);
+    expect(blocked.allowed).toBe(false);
+  });
+
+  it("custom maxAttempts does not affect default limit", async () => {
+    const keyDefault = "test-default-limit";
+    const keyCustom = "test-custom-limit-2";
+
+    for (let i = 0; i < 5; i++) {
+      await checkRateLimit(keyDefault);
+      await checkRateLimit(keyCustom, undefined, 20);
+    }
+
+    const blockedDefault = await checkRateLimit(keyDefault);
+    expect(blockedDefault.allowed).toBe(false);
+
+    const stillAllowed = await checkRateLimit(keyCustom, undefined, 20);
+    expect(stillAllowed.allowed).toBe(true);
+  });
 });

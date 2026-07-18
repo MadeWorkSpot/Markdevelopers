@@ -85,7 +85,7 @@ export async function login(_prev: unknown, formData: FormData) {
     path: "/",
     maxAge: 60 * 60 * 24,
   });
-  redirect("/admin/dashboard");
+  return { success: true };
 }
 
 export async function logout() {

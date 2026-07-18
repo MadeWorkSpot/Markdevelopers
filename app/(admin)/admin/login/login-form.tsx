@@ -1,11 +1,19 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useEffect, useActionState } from "react";
+import { useRouter } from "next/navigation";
 import { login } from "@/actions";
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [state, formAction, pending] = useActionState(login, null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.success) {
+      router.push("/admin/dashboard");
+    }
+  }, [state, router]);
 
   return (
     <form action={formAction} className="space-y-5">
