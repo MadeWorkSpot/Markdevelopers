@@ -97,10 +97,10 @@ export default async function AboutPage() {
               )
             )}
           </h2>
-          <div className="mt-4 md:mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 md:mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {(about.team ?? []).map((m) => (
               <div key={m.name} className="group cursor-pointer">
-                <div className="aspect-[16/9] overflow-hidden">
+                <div className="aspect-[3/4] overflow-hidden">
                   {m.image && (
                     <img
                       src={m.image}
@@ -112,7 +112,7 @@ export default async function AboutPage() {
                 </div>
                 <div className="mt-2 md:mt-4">
                   <h3 className="text-sm sm:text-base md:text-lg font-medium text-black">{m.name}</h3>
-                  <p className="mt-1 text-sm text-black/60">{m.role}</p>
+                  <p className=" text-sm text-black/60">{m.role}</p>
                 </div>
               </div>
             ))}

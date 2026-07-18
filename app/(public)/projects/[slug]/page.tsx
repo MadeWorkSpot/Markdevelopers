@@ -33,7 +33,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   if (!project) notFound();
 
   return (
-    <>
+    <div className="overflow-hidden">
       <section className="relative h-[70vh] w-full overflow-hidden bg-black">
         {project.image && (
           <img
@@ -44,21 +44,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         )}
         <div className="absolute inset-0 bg-black/60" />
         <div className="absolute inset-0 z-10 flex items-end px-4 pb-16 md:px-8 md:pb-24 lg:px-12 xl:px-24">
-          <div className="max-w-4xl">
+          <div className="w-full min-w-0 max-w-4xl">
             <Link
               href="/projects"
-              className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-white/50 transition-colors hover:text-white"
+              className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-white/50 transition-colors hover:text-white"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4 w-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
               </svg>
               All Projects
             </Link>
-            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-wide text-white text-balance">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-light leading-tight text-white text-balance break-words">
               {project.title}
             </h1>
             {project.subtitle && (
-              <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/60 sm:text-xl md:text-2xl">
+              <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/60 sm:text-xl md:text-2xl break-words">
                 {project.subtitle}
               </p>
             )}
@@ -67,18 +67,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       </section>
 
       {project.description && (
-        <section className="relative bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
-          <div className="absolute left-0 top-0 h-1 w-full bg-black" />
-          <div className="mx-auto">
-            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light leading-tight text-black text-balance">
+        <section className="bg-white px-4 py-16 md:px-8 lg:px-12 xl:px-24">
+          <div className="mx-auto max-w-full">
+            <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-light leading-tight text-black text-balance break-words">
               About<span className="font-medium">{" "}Project</span>
             </h2>
-            <p className="mt-4 md:mt-6 text-lg leading-relaxed text-black/60 sm:text-xl">
+            <p className="mt-4 md:mt-6 text-lg leading-relaxed text-black/60 sm:text-xl break-words">
               {project.description}
             </p>
           </div>
         </section>
       )}
-    </>
+    </div>
   );
 }
