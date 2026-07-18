@@ -25,7 +25,7 @@ interface CloudflareKV {
 const memoryAttempts = new Map<string, number[]>();
 const MEMORY_MAX_KEYS = 1000;
 
-function memoryCheck(key: string): { allowed: boolean; retryAfterMs?: number } {
+function memoryCheck(key: string, maxAttempts = MAX_ATTEMPTS): { allowed: boolean; retryAfterMs?: number } {
   const now = Date.now();
 
   if (memoryAttempts.size > MEMORY_MAX_KEYS) {
@@ -45,7 +45,7 @@ function memoryCheck(key: string): { allowed: boolean; retryAfterMs?: number } {
     memoryAttempts.set(key, timestamps);
   }
 
-  if (timestamps.length >= MAX_ATTEMPTS) {
+  if (timestamps.length >= maxAttempts) {
     const oldest = timestamps[0];
     return { allowed: false, retryAfterMs: WINDOW_MS - (now - oldest) };
   }
@@ -71,10 +71,11 @@ function getKv(): CloudflareKV | null {
 
 async function kvCheck(
   key: string,
-  ip?: string
+  ip?: string,
+  maxAttempts = MAX_ATTEMPTS
 ): Promise<{ allowed: boolean; retryAfterMs?: number }> {
   const kv = getKv();
-  if (!kv) return memoryCheck(key);
+  if (!kv) return memoryCheck(key, maxAttempts);
 
   const effectiveKey = ip ? `${key}:ip:${ip}` : key;
   const now = Date.now();
@@ -88,7 +89,7 @@ async function kvCheck(
     const raw = await kv.get(kvKey);
     const count = raw ? parseInt(raw, 10) : 0;
 
-    if (count >= MAX_ATTEMPTS) {
+    if (count >= maxAttempts) {
       const windowStart = windowBucket * WINDOW_MS;
       const retryAfterMs = windowStart + WINDOW_MS - now;
       return { allowed: false, retryAfterMs: Math.max(retryAfterMs, 1000) };
@@ -100,7 +101,7 @@ async function kvCheck(
     return { allowed: true };
   } catch {
     // KV failure — fall back to memory to avoid blocking all requests.
-    return memoryCheck(key);
+    return memoryCheck(key, maxAttempts);
   }
 }
 
@@ -108,9 +109,10 @@ async function kvCheck(
 
 export async function checkRateLimit(
   key: string,
-  ip?: string
+  ip?: string,
+  maxAttempts?: number
 ): Promise<{ allowed: boolean; retryAfterMs?: number }> {
-  return kvCheck(key, ip);
+  return kvCheck(key, ip, maxAttempts);
 }
 
 export function getClientIp(request: Request): string {

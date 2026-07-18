@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = getClientIp(req);
-    const rl = await checkRateLimit("upload", ip);
+    const rl = await checkRateLimit("upload", ip, 30);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many uploads. Try again later." }, { status: 429 });
     }
