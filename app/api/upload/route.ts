@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebase-admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { clearAuthCookies } from "@/lib/auth";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif"];
 const MAX_SIZE = 10 * 1024 * 1024;
+const MAX_FILENAME_LENGTH = 255;
+
+export function sanitizeFileName(name: string): string {
+  return name
+    .replace(/[^\w.\-]/g, "_")
+    .replace(/\.{2,}/g, ".")
+    .replace(/^\.+/, "")
+    .slice(0, MAX_FILENAME_LENGTH);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +26,7 @@ export async function POST(req: NextRequest) {
     try {
       await adminAuth.verifySessionCookie(sessionCookie, true);
     } catch {
+      await clearAuthCookies();
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -67,7 +78,8 @@ export async function POST(req: NextRequest) {
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
     const buffer = await file.arrayBuffer();
-    const newFile = new File([buffer], file.name, { type: file.type });
+    const safeName = sanitizeFileName(file.name);
+    const newFile = new File([buffer], safeName, { type: file.type });
 
     const uploadForm = new FormData();
     uploadForm.append("file", newFile);
@@ -86,14 +98,13 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json();
     if (!res.ok || !data.secure_url) {
-      console.error("Cloudinary error:", JSON.stringify(data));
-      return NextResponse.json({ error: data.error?.message || JSON.stringify(data), status: res.status }, { status: 500 });
+      console.error("Cloudinary error:", res.status);
+      return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
     }
 
     return NextResponse.json({ url: data.secure_url });
   } catch (e) {
-    console.error("Upload error:", e);
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error("Upload error:", e instanceof Error ? e.message : "unknown");
+    return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
   }
 }

@@ -18,6 +18,7 @@ export async function POST() {
     }
   }
   cookieStore.delete("session");
+  cookieStore.delete("refresh_token");
   redirect("/admin/login");
 }
 
