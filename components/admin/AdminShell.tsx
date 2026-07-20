@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, useEffect, useCallback, startTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef, startTransition } from "react";
 import { logout } from "@/actions";
 import { Toaster } from "./Toaster";
 import { ConfirmProvider } from "./ConfirmDialog";
@@ -19,10 +19,20 @@ const navItems = [
   { href: "/admin/dashboard/site", label: "Site Text" },
 ];
 
+const REFRESH_INTERVAL_MS = 20 * 60 * 60 * 1000; // 20 hours
+
 export default function AdminShell({ children, unreadCount = 0 }: { children: React.ReactNode; unreadCount?: number }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [siteHost, setSiteHost] = useState("markdevelopers.in");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const loggedOutRef = useRef(false);
+
+  const handleAuthExpired = useCallback(() => {
+    if (loggedOutRef.current) return;
+    loggedOutRef.current = true;
+    router.push("/admin/login");
+  }, [router]);
 
   useEffect(() => {
     startTransition(() => {
@@ -39,6 +49,45 @@ export default function AdminShell({ children, unreadCount = 0 }: { children: Re
       return () => { document.body.style.overflow = ""; };
     }
   }, [sidebarOpen]);
+
+  // Global fetch interceptor — redirect to login on 401/403
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401 || response.status === 403) {
+        const input = args[0];
+        const url = typeof input === "string" ? input : "url" in input ? input.url : "";
+        if (url.includes("/admin/")) {
+          handleAuthExpired();
+        }
+      }
+      return response;
+    };
+    return () => { window.fetch = originalFetch; };
+  }, [handleAuthExpired]);
+
+  // Auto-refresh session before expiry (every 20 hours)
+  // Stops permanently if the refresh token is expired/invalid.
+  useEffect(() => {
+    let cancelled = false;
+    const intervalId = setInterval(async () => {
+      if (cancelled || loggedOutRef.current) return;
+      try {
+        const res = await fetch("/admin/api/session/refresh", { method: "POST" });
+        if (!res.ok) {
+          clearInterval(intervalId);
+          handleAuthExpired();
+        }
+      } catch {
+        // Network error — don't stop retrying, try again next interval
+      }
+    }, REFRESH_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [handleAuthExpired]);
 
   return (
     <ConfirmProvider>

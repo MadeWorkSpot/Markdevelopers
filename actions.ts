@@ -7,6 +7,7 @@ import { readData, writeData } from "@/lib/data";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { clearAuthCookies } from "@/lib/auth";
 
 const VALID_CONTENT_TYPES = [
   "carousel", "services", "projects", "gallery",
@@ -14,12 +15,19 @@ const VALID_CONTENT_TYPES = [
 ];
 
 const contentLocks = new Map<string, Promise<unknown>>();
+const CONTENT_LOCK_TIMEOUT_MS = 30_000;
 
 async function withContentLock<T>(type: string, fn: () => Promise<T>): Promise<T> {
   const prev = contentLocks.get(type) ?? Promise.resolve();
   const next = prev.then(fn, fn);
-  contentLocks.set(type, next.then(() => {}));
-  return next;
+  const safe = Promise.race([
+    next,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Content lock timeout")), CONTENT_LOCK_TIMEOUT_MS)
+    ),
+  ]);
+  contentLocks.set(type, safe.then(() => {}));
+  return safe;
 }
 
 async function requireAdmin() {
@@ -53,6 +61,7 @@ export async function login(_prev: unknown, formData: FormData) {
   }
 
   let sessionCookie: string;
+  let refreshToken: string | undefined;
   try {
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
     if (!apiKey) return { error: "Configuration error. Please try again later." };
@@ -73,6 +82,7 @@ export async function login(_prev: unknown, formData: FormData) {
     sessionCookie = await adminAuth.createSessionCookie(data.idToken, {
       expiresIn: 60 * 60 * 24 * 1000,
     });
+    refreshToken = data.refreshToken;
   } catch {
     return { error: "Authentication failed." };
   }
@@ -85,6 +95,15 @@ export async function login(_prev: unknown, formData: FormData) {
     path: "/",
     maxAge: 60 * 60 * 24,
   });
+  if (refreshToken) {
+    cookieStore.set("refresh_token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
   return { success: true };
 }
 
@@ -98,7 +117,7 @@ export async function logout() {
       if (uid) await adminAuth.revokeRefreshTokens(uid);
     } catch {}
   }
-  cookieStore.delete("session");
+  await clearAuthCookies();
   redirect("/admin/login");
 }
 
@@ -186,6 +205,10 @@ export async function saveContent(type: string, data: unknown) {
   await requireAdmin();
   if (!VALID_CONTENT_TYPES.includes(type)) {
     return { success: false, error: "Invalid content type" };
+  }
+  const serialized = JSON.stringify(data);
+  if (serialized.length > 1_048_576) {
+    return { success: false, error: "Content too large. Maximum size is 1 MB." };
   }
   return withContentLock(type, async () => {
     const existing = await readData<Record<string, unknown>>(type);

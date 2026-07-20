@@ -8,6 +8,19 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
+const SAFE_PROTOCOLS = ["http:", "https:", "/"];
+
+function isSafeHref(href: string): boolean {
+  if (!href) return false;
+  const lower = href.toLowerCase().trim();
+  // Allow relative paths starting with /
+  if (lower.startsWith("/")) return true;
+  // Block javascript:, data:, vbscript: and protocol-relative URLs
+  if (lower.startsWith("//")) return false;
+  // Must start with http: or https:
+  return SAFE_PROTOCOLS.some((p) => lower.startsWith(p));
+}
+
 const DURATION = 1.5;
 const EASE = "power2.inOut";
 
@@ -108,13 +121,20 @@ function ImageCarouselInner({ slides = [] }: { slides?: Slide[] }) {
                 >
                   {s.label}
                 </button>
-              ) : (
+              ) : isSafeHref(s.href) ? (
                 <Link
                   href={s.href}
                   className="mt-2 md:mt-4 lg:mt-6 inline-block rounded-full border border-white px-6 py-3 text-xs md:text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-white hover:text-black"
                 >
                   {s.label}
                 </Link>
+              ) : (
+                <span
+                  className="mt-2 md:mt-4 lg:mt-6 inline-block rounded-full border border-white/30 px-6 py-3 text-xs md:text-sm font-medium uppercase tracking-wider text-white/30"
+                  aria-disabled="true"
+                >
+                  {s.label}
+                </span>
               )}
             </div>
           </div>
