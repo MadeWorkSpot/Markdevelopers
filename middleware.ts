@@ -13,25 +13,21 @@ export function middleware(request: NextRequest) {
   const isAdmin = host.startsWith(ADMIN_PREFIX);
 
   if (isAdmin) {
+    const origin = `${request.nextUrl.protocol}//${host}`;
+
     if (!pathname.startsWith("/admin")) {
-      return NextResponse.redirect(
-        new URL("/admin/dashboard", `${request.nextUrl.protocol}//${hostHeader}`)
-      );
+      return NextResponse.redirect(new URL("/admin/dashboard", origin));
     }
 
     const session = request.cookies.get("session")?.value;
     const isLoginRoute = pathname === "/admin/login";
 
     if (isLoginRoute && session) {
-      return NextResponse.redirect(
-        new URL("/admin/dashboard", `${request.nextUrl.protocol}//${hostHeader}`)
-      );
+      return NextResponse.redirect(new URL("/admin/dashboard", origin));
     }
 
     if (!isLoginRoute && !session) {
-      return NextResponse.redirect(
-        new URL("/admin/login", `${request.nextUrl.protocol}//${hostHeader}`)
-      );
+      return NextResponse.redirect(new URL("/admin/login", origin));
     }
 
     return NextResponse.next();

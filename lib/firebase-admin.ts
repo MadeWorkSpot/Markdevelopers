@@ -266,8 +266,44 @@ async function fsRunCount(
   collection: string,
   where?: { field: string; op: string; value: unknown }
 ): Promise<number> {
-  const docs = await fsRunQuery(collection, where);
-  return docs.length;
+  const headers = await authHeaders();
+
+  const structuredQuery: Record<string, unknown> = {
+    from: [{ collectionId: collection }],
+  };
+  if (where) {
+    structuredQuery.where = {
+      fieldFilter: {
+        field: { fieldPath: where.field },
+        op: REST_OP_MAP[where.op] || where.op,
+        value: toRestValue(where.value),
+      },
+    };
+  }
+
+  const body: Record<string, unknown> = {
+    structuredAggregationQuery: {
+      structuredQuery,
+      aggregations: [{ alias: "count_", aggregation: { count: {} } }],
+    },
+  };
+
+  const res = await fetch(`${FIRESTORE_BASE}:runAggregationQuery`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`runAggregationQuery: ${res.status}`);
+
+  const results = (await res.json()) as Array<{
+    result?: { aggregateFields?: Record<string, { integerValue?: string }> };
+  }>;
+
+  for (const r of results) {
+    const count = r.result?.aggregateFields?.count_?.integerValue;
+    if (count !== undefined) return parseInt(count, 10);
+  }
+  return 0;
 }
 
 // ── Firestore-like classes ───────────────────────────────────
@@ -441,8 +477,10 @@ class WriteBatch {
     this._ops.push(() => ref.delete());
   }
   async commit(): Promise<void> {
-    for (const op of this._ops) {
-      await op();
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < this._ops.length; i += BATCH_SIZE) {
+      const chunk = this._ops.slice(i, i + BATCH_SIZE);
+      await Promise.all(chunk.map((op) => op()));
     }
   }
 }

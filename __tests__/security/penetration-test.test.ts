@@ -207,9 +207,10 @@ describe("PHASE E — Data Integrity", () => {
     expect(src).toContain("Content lock timeout");
   });
 
-  it("E2: WriteBatch commits sequentially (known limitation)", () => {
+  it("E2: WriteBatch commits in parallel batches (FIXED)", () => {
     const src = readSrc("lib/firebase-admin.ts");
-    expect(src).toContain("for (const op of this._ops)");
+    expect(src).toContain("Promise.all(chunk.map((op) => op()))");
+    expect(src).toContain("BATCH_SIZE");
   });
 
   it("E3: Firestore REST uses structured query (no string injection)", () => {

@@ -21,35 +21,22 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect("/admin/login");
   }
 
+  let sessionValid = false;
+
   if (sessionCookie) {
     try {
       await adminAuth.verifySessionCookie(sessionCookie, true);
-      // Session valid — continue
+      sessionValid = true;
     } catch {
-      // Session invalid — try refresh
-      if (!refreshToken) {
-        await clearAuthCookies();
-        redirect("/admin/login");
-      }
-      const refreshed = await tryRefresh(refreshToken);
-      if (!refreshed) {
-        await clearAuthCookies();
-        redirect("/admin/login");
-      }
-      // Set refreshed cookies
-      cookieStore.set(SESSION_COOKIE, refreshed.sessionCookie, {
-        ...COOKIE_OPTIONS,
-        maxAge: SESSION_MAX_AGE,
-      });
-      if (refreshed.newRefreshToken) {
-        cookieStore.set(REFRESH_TOKEN_COOKIE, refreshed.newRefreshToken, {
-          ...COOKIE_OPTIONS,
-          maxAge: REFRESH_TOKEN_MAX_AGE,
-        });
-      }
+      // Session invalid — try refresh below
     }
-  } else if (refreshToken) {
-    // No session but has refresh token — try refresh
+  }
+
+  if (!sessionValid) {
+    if (!refreshToken) {
+      await clearAuthCookies();
+      redirect("/admin/login");
+    }
     const refreshed = await tryRefresh(refreshToken);
     if (!refreshed) {
       await clearAuthCookies();
@@ -67,12 +54,18 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     }
   }
 
-  const snapshot = await adminDb
-    .collection("messages")
-    .where("isRead", "==", false)
-    .count()
-    .get();
-  const unreadCount = snapshot.data().count;
+  let unreadCount = 0;
+  try {
+    const snapshot = await adminDb
+      .collection("messages")
+      .where("isRead", "==", false)
+      .count()
+      .get();
+    unreadCount = snapshot.data().count;
+  } catch {
+    // Count query failure must not break the page
+  }
+
   return <AdminShell unreadCount={unreadCount}>{children}</AdminShell>;
 }
 
