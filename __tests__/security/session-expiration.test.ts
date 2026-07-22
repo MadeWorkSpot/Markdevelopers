@@ -399,9 +399,9 @@ describe("Complete auth flow", () => {
     const refreshClears = (refreshRoute.match(/await clearAuthCookies\(\)/g) || []).length;
     expect(refreshClears).toBe(3);
 
-    // Layout: 4 places (no session+no refresh, session invalid+no refresh, session invalid+refresh failed, no session+refresh failed)
+    // Layout: 3 places (no session+no refresh, no valid session+no refresh token, refresh failed)
     const layoutClears = (layout.match(/await clearAuthCookies\(\)/g) || []).length;
-    expect(layoutClears).toBe(4);
+    expect(layoutClears).toBe(3);
 
     // Upload: 1 place (invalid session)
     const uploadClears = (upload.match(/await clearAuthCookies\(\)/g) || []).length;
