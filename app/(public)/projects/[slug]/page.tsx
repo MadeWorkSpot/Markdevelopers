@@ -19,9 +19,46 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const project = (data.projects ?? []).find((p) => slugify(p.title) === slug);
   if (!project) return { title: "Project Not Found" };
 
+  const description = project.description || project.subtitle || `${project.title} — a premium construction project by Mark Developers.`;
+
   return {
-    title: `${project.title} | Mark Developers`,
-    description: project.description || project.subtitle || "",
+    title: project.title,
+    description,
+    keywords: [
+      project.title,
+      "construction project",
+      "building project",
+      "interior design",
+      "Mark Developers",
+      "premium construction",
+    ],
+    openGraph: {
+      title: `${project.title} | Mark Developers`,
+      description,
+      url: `https://markdevelopers.in/projects/${slug}`,
+      siteName: "Mark Developers",
+      type: "article",
+      locale: "en_IN",
+      ...(project.image && {
+        images: [
+          {
+            url: project.image,
+            width: 1200,
+            height: 630,
+            alt: project.title,
+          },
+        ],
+      }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${project.title} | Mark Developers`,
+      description,
+      ...(project.image && { images: [project.image] }),
+    },
+    alternates: {
+      canonical: `https://markdevelopers.in/projects/${slug}`,
+    },
   };
 }
 

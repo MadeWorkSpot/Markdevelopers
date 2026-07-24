@@ -1,29 +1,75 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { readData } from "@/lib/data";
 
 export const revalidate = 60;
 
-export const metadata = {
-  title: "About | Mark Developers",
-  description: "Learn about Mark Developers — our mission, values, and team.",
+type AboutData = {
+  hero: { image: string; alt: string; heading: string; description: string };
+  companyStory: { heading: string; content: string };
+  sectionLabels: {
+    aboutUs: string;
+    ourTeam: string;
+    teamHeading: string;
+    letsWorkTogether: string;
+    readyToStartHeading: string;
+    readyToStartDesc: string;
+    getInTouchLabel: string;
+  };
+  values: { title: string; desc: string }[];
+  team: { name: string; role: string; image: string }[];
 };
 
+export async function generateMetadata(): Promise<Metadata> {
+  const about = await readData<AboutData>("about");
+
+  const heroDesc = about.hero?.description ?? "";
+  const companyStory = about.companyStory?.content ?? "";
+  const description = heroDesc || companyStory.slice(0, 160) || "Learn about Mark Developers — our mission, values, and team of construction and design professionals.";
+
+  return {
+    title: "About Us",
+    description,
+    keywords: [
+      "about Mark Developers",
+      "construction company team",
+      "our mission",
+      "building contractors India",
+      "construction values",
+      "architectural design team",
+    ],
+    openGraph: {
+      title: "About Us | Mark Developers",
+      description,
+      url: "https://markdevelopers.in/about",
+      siteName: "Mark Developers",
+      type: "website",
+      locale: "en_IN",
+      ...(about.hero?.image && {
+        images: [
+          {
+            url: about.hero.image,
+            width: 1200,
+            height: 630,
+            alt: about.hero.alt || "About Mark Developers",
+          },
+        ],
+      }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "About Us | Mark Developers",
+      description,
+      ...(about.hero?.image && { images: [about.hero.image] }),
+    },
+    alternates: {
+      canonical: "https://markdevelopers.in/about",
+    },
+  };
+}
+
 export default async function AboutPage() {
-  const about = await readData<{
-    hero: { image: string; alt: string; heading: string; description: string };
-    companyStory: { heading: string; content: string };
-    sectionLabels: {
-      aboutUs: string;
-      ourTeam: string;
-      teamHeading: string;
-      letsWorkTogether: string;
-      readyToStartHeading: string;
-      readyToStartDesc: string;
-      getInTouchLabel: string;
-    };
-    values: { title: string; desc: string }[];
-    team: { name: string; role: string; image: string }[];
-  }>("about");
+  const about = await readData<AboutData>("about");
 
   const labels = about.sectionLabels ?? {};
 
