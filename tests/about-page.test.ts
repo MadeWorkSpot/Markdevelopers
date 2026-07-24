@@ -89,12 +89,12 @@ describe("AboutPage", () => {
     expect(aspectDivs.length).toBe(2);
   });
 
-  it("renders four-column grid on desktop (lg:grid-cols-4)", async () => {
+  it("renders team members in flex container", async () => {
     const page = await AboutPage();
     const { container } = render(page);
 
-    const grid = container.querySelector(".lg\\:grid-cols-4");
-    expect(grid).not.toBeNull();
+    const flex = container.querySelector(".flex.flex-wrap");
+    expect(flex).not.toBeNull();
   });
 
   it("renders values section", async () => {

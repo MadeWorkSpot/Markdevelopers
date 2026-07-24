@@ -1,19 +1,65 @@
+import type { Metadata } from "next";
 import { readData } from "@/lib/data";
 
 export const revalidate = 60;
 
-export const metadata = {
-  title: "Gallery | Mark Developers",
-  description: "Browse our project gallery showcasing premium construction and design work.",
+type GalleryData = {
+  pageLabel: string;
+  pageHeading: string;
+  pageSubtitle: string;
+  images: { src: string; alt: string }[];
 };
 
+export async function generateMetadata(): Promise<Metadata> {
+  const data = await readData<GalleryData>("gallery");
+
+  const pageSubtitle = data.pageSubtitle ?? "";
+  const imageCount = (data.images ?? []).length;
+  const description = pageSubtitle || `Browse our gallery of ${imageCount}+ premium construction and interior design projects by Mark Developers.`;
+
+  return {
+    title: "Gallery",
+    description,
+    keywords: [
+      "construction gallery",
+      "interior design photos",
+      "building projects gallery",
+      "premium construction work",
+      "renovation photos",
+      "Mark Developers gallery",
+    ],
+    openGraph: {
+      title: "Gallery | Mark Developers",
+      description,
+      url: "https://markdevelopers.in/gallery",
+      siteName: "Mark Developers",
+      type: "website",
+      locale: "en_IN",
+      ...(data.images?.[0]?.src && {
+        images: [
+          {
+            url: data.images[0].src,
+            width: 1200,
+            height: 630,
+            alt: data.images[0].alt || "Mark Developers Gallery",
+          },
+        ],
+      }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Gallery | Mark Developers",
+      description,
+      ...(data.images?.[0]?.src && { images: [data.images[0].src] }),
+    },
+    alternates: {
+      canonical: "https://markdevelopers.in/gallery",
+    },
+  };
+}
+
 export default async function GalleryPage() {
-  const data = await readData<{
-    pageLabel: string;
-    pageHeading: string;
-    pageSubtitle: string;
-    images: { src: string; alt: string }[];
-  }>("gallery");
+  const data = await readData<GalleryData>("gallery");
 
   const headingParts = (data.pageHeading || "Gallery").split(" ");
   const firstWords = headingParts.slice(0, -1).join(" ");

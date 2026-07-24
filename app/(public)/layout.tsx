@@ -18,9 +18,39 @@ function NavbarSkeleton() {
   );
 }
 
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Mark Developers",
+  url: "https://markdevelopers.in",
+  logo: "https://markdevelopers.in/markDevelopersLogo.png",
+  description: "Premium building construction, renovation, and interior design services.",
+  areaServed: "IN",
+  serviceType: ["Construction", "Interior Design", "Renovation", "Real Estate Development"],
+};
+
+const localBusinessSchema = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  name: "Mark Developers",
+  url: "https://markdevelopers.in",
+  logo: "https://markdevelopers.in/markDevelopersLogo.png",
+  description: "Premium building construction, renovation, and interior design services.",
+  areaServed: "IN",
+  serviceType: ["Construction", "Interior Design", "Renovation", "Real Estate Development"],
+};
+
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+      />
       <Suspense fallback={<NavbarSkeleton />}>
         <NavbarWrapper />
       </Suspense>
