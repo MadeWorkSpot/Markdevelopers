@@ -101,54 +101,47 @@ describe("Protected layout", () => {
   it("redirects to login when both session and refresh token are missing", () => {
     const src = readSrc("app/(admin)/admin/(protected)/layout.tsx");
     expect(src).toContain("!sessionCookie && !refreshToken");
-    expect(src).toContain("await clearAuthCookies()");
     expect(src).toContain('redirect("/admin/login")');
   });
 
-  it("clears cookies and redirects when session is invalid and no refresh token", () => {
+  it("redirects to login when session is invalid and no refresh token", () => {
     const src = readSrc("app/(admin)/admin/(protected)/layout.tsx");
-    expect(src).toContain("await clearAuthCookies()");
     expect(src).toContain('redirect("/admin/login")');
   });
 
-  it("tries inline refresh when session is invalid but refresh token exists", () => {
+  it("redirects to refresh route when session is invalid but refresh token exists", () => {
     const src = readSrc("app/(admin)/admin/(protected)/layout.tsx");
-    expect(src).toContain("const refreshed = await tryRefresh(refreshToken)");
+    expect(src).toContain("redirect(\"/admin/api/session/refresh?redirect=");
   });
 
-  it("clears cookies when inline refresh fails", () => {
-    const src = readSrc("app/(admin)/admin/(protected)/layout.tsx");
-    expect(src).toContain("if (!refreshed)");
-    expect(src).toContain("await clearAuthCookies()");
+  it("refresh route handles token refresh and sets cookies", () => {
+    const route = readSrc("app/(admin)/admin/api/session/refresh/route.ts");
+    expect(route).toContain("async function doRefresh");
+    expect(route).toContain("cookieStore.set(SESSION_COOKIE");
+    expect(route).toContain("cookieStore.set(REFRESH_TOKEN_COOKIE");
   });
 
-  it("sets new session cookie on successful inline refresh", () => {
-    const src = readSrc("app/(admin)/admin/(protected)/layout.tsx");
-    expect(src).toContain("cookieStore.set(SESSION_COOKIE, refreshed.sessionCookie");
-  });
-
-  it("sets new refresh token when Firebase rotates it", () => {
-    const src = readSrc("app/(admin)/admin/(protected)/layout.tsx");
-    expect(src).toContain("if (refreshed.newRefreshToken)");
-    expect(src).toContain("cookieStore.set(REFRESH_TOKEN_COOKIE, refreshed.newRefreshToken");
+  it("refresh route sets new refresh token when Firebase rotates it", () => {
+    const route = readSrc("app/(admin)/admin/api/session/refresh/route.ts");
+    expect(route).toContain("data.refresh_token");
+    expect(route).toContain("REFRESH_TOKEN_COOKIE");
   });
 
   it("uses shared constants for cookie names and options", () => {
-    const src = readSrc("app/(admin)/admin/(protected)/layout.tsx");
-    expect(src).toContain("SESSION_COOKIE");
-    expect(src).toContain("REFRESH_TOKEN_COOKIE");
-    expect(src).toContain("COOKIE_OPTIONS");
+    const route = readSrc("app/(admin)/admin/api/session/refresh/route.ts");
+    expect(route).toContain("SESSION_COOKIE");
+    expect(route).toContain("REFRESH_TOKEN_COOKIE");
+    expect(route).toContain("COOKIE_OPTIONS");
   });
 
-  it("has tryRefresh function that calls Firebase token endpoint", () => {
-    const src = readSrc("app/(admin)/admin/(protected)/layout.tsx");
-    expect(src).toContain("async function tryRefresh");
-    expect(src).toContain("securetoken.googleapis.com");
+  it("refresh route calls Firebase token endpoint", () => {
+    const route = readSrc("app/(admin)/admin/api/session/refresh/route.ts");
+    expect(route).toContain("securetoken.googleapis.com");
   });
 
-  it("tryRefresh returns null on failure (not throw)", () => {
+  it("layout does not call cookieStore.set (Server Component restriction)", () => {
     const src = readSrc("app/(admin)/admin/(protected)/layout.tsx");
-    expect(src).toContain("return null");
+    expect(src).not.toContain("cookieStore.set");
   });
 });
 
@@ -392,16 +385,11 @@ describe("Complete auth flow", () => {
 
   it("clearAuthCookies is called in all expiration paths", () => {
     const refreshRoute = readSrc("app/(admin)/admin/api/session/refresh/route.ts");
-    const layout = readSrc("app/(admin)/admin/(protected)/layout.tsx");
     const upload = readSrc("app/api/upload/route.ts");
 
     // Refresh route: 3 places (no token, failed refresh, catch)
     const refreshClears = (refreshRoute.match(/await clearAuthCookies\(\)/g) || []).length;
     expect(refreshClears).toBe(3);
-
-    // Layout: 3 places (no session+no refresh, no valid session+no refresh token, refresh failed)
-    const layoutClears = (layout.match(/await clearAuthCookies\(\)/g) || []).length;
-    expect(layoutClears).toBe(3);
 
     // Upload: 1 place (invalid session)
     const uploadClears = (upload.match(/await clearAuthCookies\(\)/g) || []).length;
