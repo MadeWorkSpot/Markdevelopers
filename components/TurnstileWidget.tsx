@@ -2,13 +2,6 @@
 
 import { useRef, useCallback, useId, useEffect } from "react";
 
-// Cloudflare Turnstile widget — renders a non-intrusive CAPTCHA challenge.
-// The widget auto-solves for most users (no interaction needed).
-// For suspicious traffic, it presents a visual challenge.
-//
-// The Turnstile script is loaded dynamically when this component mounts.
-// See: https://developers.cloudflare.com/turnstile/
-
 const TURNSTILE_SCRIPT_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js";
 
 declare global {
@@ -23,25 +16,25 @@ declare global {
           "expired-callback"?: () => void;
           theme?: "auto" | "light" | "dark";
           size?: "normal" | "compact";
+          execution?: "render" | "execute";
+          action?: string;
         }
       ) => string;
       reset: (widgetId: string) => void;
       remove: (widgetId: string) => void;
+      getResponse: (widgetId: string) => string | undefined;
     };
   }
 }
 
 function loadTurnstileScript(): Promise<void> {
   return new Promise((resolve) => {
-    // Already loaded.
     if (window.turnstile) {
       resolve();
       return;
     }
-    // Check if the script tag already exists.
     const existing = document.querySelector(`script[src="${TURNSTILE_SCRIPT_URL}"]`);
     if (existing) {
-      // Script tag exists but widget not yet available — wait for it.
       const check = () => {
         if (window.turnstile) {
           resolve();
@@ -56,7 +49,6 @@ function loadTurnstileScript(): Promise<void> {
     script.src = TURNSTILE_SCRIPT_URL;
     script.async = true;
     script.onload = () => {
-      // Script loaded but turnstile object may take a frame to initialize.
       const check = () => {
         if (window.turnstile) {
           resolve();
@@ -70,6 +62,8 @@ function loadTurnstileScript(): Promise<void> {
   });
 }
 
+const MAX_RETRIES = 3;
+
 export default function TurnstileWidget({
   siteKey,
   onTokenChange,
@@ -79,10 +73,12 @@ export default function TurnstileWidget({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string>("");
+  const retriesRef = useRef(0);
   const id = useId();
 
   const handleToken = useCallback(
     (token: string) => {
+      retriesRef.current = 0;
       onTokenChange(token);
     },
     [onTokenChange]
@@ -90,17 +86,27 @@ export default function TurnstileWidget({
 
   const handleError = useCallback(() => {
     onTokenChange("");
-  }, [onTokenChange]);
+    if (retriesRef.current < MAX_RETRIES && widgetIdRef.current && window.turnstile) {
+      retriesRef.current++;
+      try {
+        window.turnstile.reset(widgetIdRef.current);
+      } catch {
+        rebuildWidget(siteKey, onTokenChange, widgetIdRef);
+      }
+    }
+  }, [siteKey, onTokenChange]);
 
   const handleExpired = useCallback(() => {
     onTokenChange("");
-    // Auto-reset the widget when the token expires.
     if (widgetIdRef.current && window.turnstile) {
-      window.turnstile.reset(widgetIdRef.current);
+      try {
+        window.turnstile.reset(widgetIdRef.current);
+      } catch {
+        rebuildWidget(siteKey, onTokenChange, widgetIdRef);
+      }
     }
-  }, [onTokenChange]);
+  }, [siteKey, onTokenChange]);
 
-  // Load the Turnstile script and initialize the widget after mount.
   useEffect(() => {
     const node = containerRef.current;
     if (!node) return;
@@ -109,7 +115,6 @@ export default function TurnstileWidget({
 
     loadTurnstileScript().then(() => {
       if (cancelled || !window.turnstile || !node) return;
-      // Remove any existing widget first.
       if (widgetIdRef.current) {
         try {
           window.turnstile.remove(widgetIdRef.current);
@@ -138,4 +143,34 @@ export default function TurnstileWidget({
   return (
     <div id={`turnstile-${id}`} ref={containerRef} className="cf-turnstile" />
   );
+}
+
+function rebuildWidget(
+  siteKey: string,
+  onTokenChange: (token: string) => void,
+  widgetIdRef: React.MutableRefObject<string>
+) {
+  const container = document.querySelector<HTMLElement>(".cf-turnstile");
+  if (!container || !window.turnstile) return;
+
+  try {
+    if (widgetIdRef.current) {
+      window.turnstile.remove(widgetIdRef.current);
+    }
+  } catch {}
+
+  widgetIdRef.current = window.turnstile.render(container, {
+    sitekey: siteKey,
+    callback: (token: string) => {
+      onTokenChange(token);
+    },
+    "error-callback": () => {
+      onTokenChange("");
+    },
+    "expired-callback": () => {
+      onTokenChange("");
+    },
+    theme: "dark",
+    size: "normal",
+  });
 }

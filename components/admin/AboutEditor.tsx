@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import { saveContent } from "@/actions";
 import { toast } from "./Toaster";
@@ -59,6 +59,49 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
   }));
   const [saving, setSaving] = useState(false);
   const [uploadingCount, setUploadingCount] = useState(0);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragCounter = useRef(0);
+
+  function handleTeamDragStart(e: React.DragEvent, index: number) {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+    setDragIndex(index);
+  }
+
+  function handleTeamDragEnter(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    dragCounter.current++;
+    setDragOverIndex(index);
+  }
+
+  function handleTeamDragLeave() {
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setDragOverIndex(null);
+    }
+  }
+
+  function handleTeamDrop(e: React.DragEvent, toIndex: number) {
+    e.preventDefault();
+    dragCounter.current = 0;
+    const fromIndex = dragIndex;
+    setDragIndex(null);
+    setDragOverIndex(null);
+    if (fromIndex === null || fromIndex === toIndex) return;
+    setData((d) => {
+      const team = [...d.team];
+      const [moved] = team.splice(fromIndex, 1);
+      team.splice(toIndex, 0, moved);
+      return { ...d, team };
+    });
+  }
+
+  function handleTeamDragEnd() {
+    dragCounter.current = 0;
+    setDragIndex(null);
+    setDragOverIndex(null);
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -140,23 +183,48 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
         <button onClick={() => setData((d) => ({ ...d, values: [...d.values, { title: "", desc: "" }] }))} className="mt-3 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 hover:bg-zinc-800">Add Value</button>
       </Section>
 
-      <Section title="Team Members">
-        {(data.team ?? []).map((m, i) => (
-          <div key={i} className="space-y-2 rounded-lg border border-zinc-800 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <input value={m.name} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], name: val }; return { ...d, team: n }; }); }} placeholder="Name" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
-              <input value={m.role} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], role: val }; return { ...d, team: n }; }); }} placeholder="Role" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+      <div className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+        <h2 className="mb-4 text-sm font-medium text-zinc-400">Team Members</h2>
+        <p className="mb-4 text-xs text-zinc-600">Drag the grip handle to reorder team members.</p>
+        <div className="space-y-3">
+          {(data.team ?? []).map((m, i) => (
+            <div
+              key={i}
+              draggable
+              onDragStart={(e) => handleTeamDragStart(e, i)}
+              onDragEnter={(e) => handleTeamDragEnter(e, i)}
+              onDragLeave={handleTeamDragLeave}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleTeamDrop(e, i)}
+              onDragEnd={handleTeamDragEnd}
+              className={`space-y-2 rounded-lg border p-4 transition-all ${
+                dragOverIndex === i
+                  ? "border-zinc-500 bg-zinc-800/50"
+                  : dragIndex === i
+                    ? "border-zinc-600 opacity-50"
+                    : "border-zinc-800 hover:border-zinc-700"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-0.5 cursor-grab active:cursor-grabbing" title="Drag to reorder">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 text-zinc-600">
+                    <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+                  </svg>
+                </div>
+                <input value={m.name} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], name: val }; return { ...d, team: n }; }); }} placeholder="Name" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+                <input value={m.role} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], role: val }; return { ...d, team: n }; }); }} placeholder="Role" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+                <button onClick={() => setData((d) => ({ ...d, team: d.team.filter((_, j) => j !== i) }))} className="rounded-lg border border-red-900/50 px-3 py-2 text-xs text-red-400 hover:bg-red-950/50">Remove</button>
+              </div>
+              <div className="flex items-center gap-3 pl-8">
+                <input value={m.image} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], image: val }; return { ...d, team: n }; }); }} placeholder="Image URL" className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+                <ImageUploader id={`about-team-image-${i}`} onUpload={(url) => { setData((d) => { const n = [...d.team]; n[i] = { ...n[i], image: url }; return { ...d, team: n }; }); }} onUploadingChange={(u) => setUploadingCount((c) => c + (u ? 1 : -1))} />
+                {m.image && <img src={m.image} alt="" className="h-16 w-24 rounded-lg object-cover max-w-full" />}
+              </div>
             </div>
-            <div className="space-y-2">
-              <input value={m.image} onChange={(e) => { const val = e.target.value; setData((d) => { const n = [...d.team]; n[i] = { ...n[i], image: val }; return { ...d, team: n }; }); }} placeholder="Image URL" className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
-              <ImageUploader id={`about-team-image-${i}`} onUpload={(url) => { setData((d) => { const n = [...d.team]; n[i] = { ...n[i], image: url }; return { ...d, team: n }; }); }} onUploadingChange={(u) => setUploadingCount((c) => c + (u ? 1 : -1))} />
-              {m.image && <img src={m.image} alt="" className="h-16 w-24 rounded-lg object-cover max-w-full" />}
-            </div>
-            <button onClick={() => setData((d) => ({ ...d, team: d.team.filter((_, j) => j !== i) }))} className="text-xs text-red-400 hover:text-red-300">Remove</button>
-          </div>
-        ))}
+          ))}
+        </div>
         <button onClick={() => setData((d) => ({ ...d, team: [...d.team, { name: "", role: "", image: "" }] }))} className="mt-3 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 hover:bg-zinc-800">Add Team Member</button>
-      </Section>
+      </div>
 
       <Section title="Section Labels">
         <Field label="About Us">

@@ -74,7 +74,7 @@ export default async function AboutPage() {
   const labels = about.sectionLabels ?? {};
 
   return (
-    <>
+    <div className="overflow-x-hidden">
       <section className="relative flex min-h-[70vh] items-center overflow-hidden bg-black">
         <div className="absolute inset-0">
           {about.hero?.image && (
@@ -143,10 +143,10 @@ export default async function AboutPage() {
               )
             )}
           </h2>
-          <div className="mt-4 md:mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 md:mt-8 flex flex-wrap gap-4 sm:gap-8">
             {(about.team ?? []).map((m) => (
-              <div key={m.name} className="group cursor-pointer">
-                <div className="aspect-[3/4] overflow-hidden">
+              <div key={m.name} className="group cursor-pointer w-[calc(50%-8px)] sm:w-[calc(50%-16px)] lg:w-[calc(20%-26px)]">
+                <div className="aspect-[3/4] w-full overflow-hidden">
                   {m.image && (
                     <img
                       src={m.image}
@@ -188,6 +188,6 @@ export default async function AboutPage() {
           </Link>
         </div>
       </section>
-    </>
+    </div>
   );
 }

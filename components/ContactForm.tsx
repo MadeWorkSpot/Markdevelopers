@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useId, useCallback, useState, useRef, useEffect } from "react";
 import { submitContact } from "@/actions";
 import TurnstileWidget from "@/components/TurnstileWidget";
 
@@ -26,6 +26,20 @@ export default function ContactForm({
   const [state, formAction, pending] = useActionState(submitContact, null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const id = useId();
+  const turnstileKeyRef = useRef(0);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+
+  const handleTokenChange = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
+
+  useEffect(() => {
+    if (state?.error?.includes("Security verification failed")) {
+      setTurnstileToken("");
+      turnstileKeyRef.current++;
+      setTurnstileKey((k) => k + 1);
+    }
+  }, [state]);
 
   return (
     <form key={state?.success ? `${id}-sent` : id} action={formAction} className="grid gap-6 sm:grid-cols-2">
@@ -74,19 +88,22 @@ export default function ContactForm({
       {TURNSTILE_SITE_KEY && (
         <div className="sm:col-span-2">
           <TurnstileWidget
+            key={turnstileKey}
             siteKey={TURNSTILE_SITE_KEY}
-            onTokenChange={setTurnstileToken}
+            onTokenChange={handleTokenChange}
           />
         </div>
       )}
-      {/* Turnstile token — hidden field submitted with the form */}
       {TURNSTILE_SITE_KEY && (
         <input type="hidden" name="cf-turnstile-response" value={turnstileToken} />
       )}
       <div className="sm:col-span-2">
+        {TURNSTILE_SITE_KEY && !turnstileToken && (
+          <p className="mb-3 text-xs text-white/40">Verifying you are human...</p>
+        )}
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || (TURNSTILE_SITE_KEY !== "" && !turnstileToken)}
           className="rounded-full border border-white px-6 py-3 text-xs md:text-md font-medium uppercase tracking-wider text-white transition-all hover:bg-white hover:text-black disabled:opacity-50"
         >
           {pending ? "Sending..." : sendMessageLabel}
