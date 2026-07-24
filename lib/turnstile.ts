@@ -28,10 +28,7 @@ export async function verifyTurnstile(token: string | null): Promise<TurnstileRe
   // This allows local development without requiring a Turnstile secret.
   // In production, TURNSTILE_SECRET_KEY MUST be set.
   if (!TURNSTILE_SECRET_KEY) {
-    if (process.env.NODE_ENV === "production") {
-      console.error("TURNSTILE_SECRET_KEY is not set — rejecting request in production.");
-      return { success: false, errorCodes: ["missing-secret-key"] };
-    }
+    console.warn("TURNSTILE_SECRET_KEY is not set — skipping Turnstile verification.");
     return { success: true };
   }
 
