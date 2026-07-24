@@ -1,6 +1,7 @@
 import { adminDb } from "@/lib/firebase-admin";
 import { deleteMessage } from "@/actions";
 import MarkRead from "@/components/admin/MarkRead";
+import RelativeTime from "@/components/admin/RelativeTime";
 
 type Message = {
   id: string;
@@ -59,7 +60,7 @@ export default async function NotificationsPage() {
                     {msg.message}
                   </p>
                   <p className="mt-2 text-xs text-zinc-600">
-                    {msg.createdAt ? new Date(msg.createdAt).toLocaleString() : "Unknown date"}
+                    {msg.createdAt ? <RelativeTime timestamp={msg.createdAt} /> : "Unknown date"}
                   </p>
                 </div>
                 <form action={deleteMessage.bind(null, msg.id)}>
