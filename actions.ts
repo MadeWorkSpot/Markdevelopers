@@ -124,48 +124,50 @@ export async function logout() {
 // ─── Content CRUD ────────────────────────────────────────────────────────────
 
 export async function submitContact(_prev: unknown, formData: FormData) {
-  const name = (formData.get("name") as string)?.trim();
-  const email = (formData.get("email") as string)?.trim();
-  const message = (formData.get("message") as string)?.trim();
-
-  if (!name || !email || !message) {
-    return { error: "All fields are required." };
-  }
-  if (name.length > 100) {
-    return { error: "Name must be 100 characters or less." };
-  }
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: "Please enter a valid email address." };
-  }
-  if (message.length > 5000) {
-    return { error: "Message must be 5000 characters or less." };
-  }
-
-  // Verify Cloudflare Turnstile CAPTCHA token.
-  // Prevents automated spam submissions. If TURNSTILE_SECRET_KEY is not set,
-  // verification is skipped in development but enforced in production.
-  const turnstileToken = formData.get("cf-turnstile-response") as string | null;
-  const turnstileResult = await verifyTurnstile(turnstileToken);
-  if (!turnstileResult.success) {
-    return { error: "Security verification failed. Please try again." };
-  }
-
-  const rl = await checkRateLimit(`contact:${email}`);
-  if (!rl.allowed) {
-    return { error: `Too many messages. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
-  }
-
   try {
+    const name = (formData.get("name") as string)?.trim();
+    const email = (formData.get("email") as string)?.trim();
+    const message = (formData.get("message") as string)?.trim();
+
+    if (!name || !email || !message) {
+      return { error: "All fields are required." };
+    }
+    if (name.length > 100) {
+      return { error: "Name must be 100 characters or less." };
+    }
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { error: "Please enter a valid email address." };
+    }
+    if (message.length > 5000) {
+      return { error: "Message must be 5000 characters or less." };
+    }
+
+    const turnstileToken = formData.get("cf-turnstile-response") as string | null;
+    const turnstileResult = await verifyTurnstile(turnstileToken);
+    if (!turnstileResult.success) {
+      return { error: "Security verification failed. Please try again." };
+    }
+
+    const rl = await checkRateLimit(`contact:${email}`);
+    if (!rl.allowed) {
+      return { error: `Too many messages. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
+    }
+
     const db = adminDb;
-    await db.collection("messages").add({
+    const now = Date.now();
+    const docRef = await db.collection("messages").add({
       name,
       email,
       message,
-      createdAt: Date.now(),
+      createdAt: now,
       isRead: false,
     });
+    if (!docRef.id) {
+      return { error: "Message could not be saved. Please try again." };
+    }
     return { success: true };
-  } catch {
+  } catch (err) {
+    console.error("[submitContact] Error:", err);
     return { error: "Failed to send message. Please try again." };
   }
 }
