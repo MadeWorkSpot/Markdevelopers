@@ -7,7 +7,7 @@ import { readData } from "@/lib/data";
 export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [siteData, servicesData, projectsData] = await Promise.all([
+  const [, servicesData, projectsData] = await Promise.all([
     readData<{ servicesSectionHeading?: string; projectsSectionHeading?: string }>("site"),
     readData<{ services: { title: string; desc: string }[] }>("services"),
     readData<{ projects: { title: string; subtitle?: string }[] }>("projects"),

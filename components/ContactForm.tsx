@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useCallback, useState, useRef, useEffect } from "react";
+import { useActionState, useId, useCallback, useState } from "react";
 import { submitContact } from "@/actions";
 import TurnstileWidget from "@/components/TurnstileWidget";
 
@@ -25,21 +25,18 @@ export default function ContactForm({
 }) {
   const [state, formAction, pending] = useActionState(submitContact, null);
   const [turnstileToken, setTurnstileToken] = useState("");
-  const id = useId();
-  const turnstileKeyRef = useRef(0);
   const [turnstileKey, setTurnstileKey] = useState(0);
+  const id = useId();
+
+  const securityFailed = state?.error?.includes("Security verification failed") ?? false;
+
+  const effectiveToken = securityFailed ? "" : turnstileToken;
+  const effectiveKey = securityFailed ? turnstileKey + 1 : turnstileKey;
 
   const handleTokenChange = useCallback((token: string) => {
     setTurnstileToken(token);
+    setTurnstileKey((k) => k + 1);
   }, []);
-
-  useEffect(() => {
-    if (state?.error?.includes("Security verification failed")) {
-      setTurnstileToken("");
-      turnstileKeyRef.current++;
-      setTurnstileKey((k) => k + 1);
-    }
-  }, [state]);
 
   return (
     <form key={state?.success ? `${id}-sent` : id} action={formAction} className="grid gap-6 sm:grid-cols-2">
@@ -88,22 +85,22 @@ export default function ContactForm({
       {TURNSTILE_SITE_KEY && (
         <div className="sm:col-span-2">
           <TurnstileWidget
-            key={turnstileKey}
+            key={effectiveKey}
             siteKey={TURNSTILE_SITE_KEY}
             onTokenChange={handleTokenChange}
           />
         </div>
       )}
       {TURNSTILE_SITE_KEY && (
-        <input type="hidden" name="cf-turnstile-response" value={turnstileToken} />
+        <input type="hidden" name="cf-turnstile-response" value={effectiveToken} />
       )}
       <div className="sm:col-span-2">
-        {TURNSTILE_SITE_KEY && !turnstileToken && (
+        {TURNSTILE_SITE_KEY && !effectiveToken && (
           <p className="mb-3 text-xs text-white/40">Verifying you are human...</p>
         )}
         <button
           type="submit"
-          disabled={pending || (TURNSTILE_SITE_KEY !== "" && !turnstileToken)}
+          disabled={pending || (TURNSTILE_SITE_KEY !== "" && !effectiveToken)}
           className="rounded-full border border-white px-6 py-3 text-xs md:text-md font-medium uppercase tracking-wider text-white transition-all hover:bg-white hover:text-black disabled:opacity-50"
         >
           {pending ? "Sending..." : sendMessageLabel}
