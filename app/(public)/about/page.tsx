@@ -16,6 +16,7 @@ type AboutData = {
     readyToStartDesc: string;
     getInTouchLabel: string;
   };
+  ceoMessage: { image: string; alt: string; name: string; title: string; message: string };
   values: { title: string; desc: string }[];
   team: { name: string; role: string; image: string }[];
 };
@@ -117,15 +118,49 @@ export default async function AboutPage() {
         </section>
       )}
 
+      {about.ceoMessage?.message && (
+        <section className="bg-white px-4 pb-16 md:px-8 lg:px-12 xl:px-24">
+          <div className="mx-auto max-w-7xl">
+            <div className="flex flex-col items-center gap-8 md:flex-row md:gap-16">
+              {about.ceoMessage.image && (
+                <div className="shrink-0">
+                  <img
+                    src={about.ceoMessage.image}
+                    alt={about.ceoMessage.alt || about.ceoMessage.name}
+                    className="h-48 w-48 rounded-full object-cover md:h-64 md:w-64"
+                  />
+                  <div className="mt-4 text-center md:hidden">
+                    <h3 className="text-lg font-medium text-black">{about.ceoMessage.name}</h3>
+                    <p className="text-sm text-black/50">{about.ceoMessage.title}</p>
+                  </div>
+                </div>
+              )}
+              <div className="flex-1 text-center md:text-left">
+                <svg className="mx-auto hidden md:flex mb-4 h-10 w-10 text-black/15 md:mx-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                </svg>
+                <p className="xs:text-md md:text-lg leading-snug text-black/60">
+                  {about.ceoMessage.message}
+                </p>
+                <div className="mt-6 hidden md:block">
+                  <h3 className="text-lg font-medium text-black">{about.ceoMessage.name}</h3>
+                  <p className="text-sm text-black/50">{about.ceoMessage.title}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="bg-black px-4 py-16 md:px-8 lg:px-12 xl:px-24">
         <div className="mx-auto max-w-full">
-          <div className="grid gap-16 lg:grid-cols-2">
+          <div className="grid gap-8 lg:grid-cols-2">
             {(about.values ?? []).map((v) => (
               <div key={v.title}>
                 <span className="text-md md:text-lg font-medium uppercase text-white/50">
                   {v.title}
                 </span>
-                <p className="mt-4 leading-tight text-white/60 xs:text-2x md:text-md">{v.desc}</p>
+                <p className="mt-2 text-white/60 xs:text-md md:text-lg leading-snug">{v.desc}</p>
               </div>
             ))}
           </div>

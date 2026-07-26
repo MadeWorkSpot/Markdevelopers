@@ -27,6 +27,7 @@ type AboutData = {
     readyToStartDesc: string;
     getInTouchLabel: string;
   };
+  ceoMessage: { image: string; alt: string; name: string; title: string; message: string };
   values: { title: string; desc: string }[];
   team: { name: string; role: string; image: string }[];
 };
@@ -43,6 +44,13 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
     companyStory: {
       heading: initial?.companyStory?.heading ?? "",
       content: initial?.companyStory?.content ?? "",
+    },
+    ceoMessage: {
+      image: initial?.ceoMessage?.image ?? "",
+      alt: initial?.ceoMessage?.alt ?? "",
+      name: initial?.ceoMessage?.name ?? "",
+      title: initial?.ceoMessage?.title ?? "",
+      message: initial?.ceoMessage?.message ?? "",
     },
     stats: initial?.stats ?? [],
     sectionLabels: {
@@ -158,6 +166,32 @@ export default function AboutPage({ data: initial }: { data: AboutData }) {
         </Field>
         <Field label="Content" span>
           <textarea value={data.companyStory?.content ?? ""} onChange={(e) => setData((d) => ({ ...d, companyStory: { ...d.companyStory, content: e.target.value } }))} rows={6} className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+        </Field>
+      </Section>
+
+      <Section title="CEO Message">
+        <Field label="Photo">
+          <div className="space-y-2">
+            <input
+              value={data.ceoMessage.image}
+              onChange={(e) => setData((d) => ({ ...d, ceoMessage: { ...d.ceoMessage, image: e.target.value } }))}
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500"
+            />
+            <ImageUploader id="about-ceo-image" onUpload={(url) => setData((d) => ({ ...d, ceoMessage: { ...d.ceoMessage, image: url } }))} onUploadingChange={(u) => setUploadingCount((c) => c + (u ? 1 : -1))} />
+            {data.ceoMessage.image && <img src={data.ceoMessage.image} alt="" className="h-24 w-24 rounded-full object-cover max-w-full" />}
+          </div>
+        </Field>
+        <Field label="Alt Text">
+          <input value={data.ceoMessage.alt} onChange={(e) => setData((d) => ({ ...d, ceoMessage: { ...d.ceoMessage, alt: e.target.value } }))} className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+        </Field>
+        <Field label="Name">
+          <input value={data.ceoMessage.name} onChange={(e) => setData((d) => ({ ...d, ceoMessage: { ...d.ceoMessage, name: e.target.value } }))} className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+        </Field>
+        <Field label="Title / Designation">
+          <input value={data.ceoMessage.title} onChange={(e) => setData((d) => ({ ...d, ceoMessage: { ...d.ceoMessage, title: e.target.value } }))} className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
+        </Field>
+        <Field label="Message" span>
+          <textarea value={data.ceoMessage.message} onChange={(e) => setData((d) => ({ ...d, ceoMessage: { ...d.ceoMessage, message: e.target.value } }))} rows={4} className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500" />
         </Field>
       </Section>
 
