@@ -171,7 +171,7 @@ jobs:
           ADMIN_HOST: ${{ secrets.ADMIN_HOST }}
 
       - name: Deploy admin worker
-        run: npx opennextjs-cloudflare deploy --config wrangler.admin.jsonc
+        run: npx opennextjs-cloudflare deploy --config wrangler.admin.jsonc --domain admindashboard.markdevelopers.in
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

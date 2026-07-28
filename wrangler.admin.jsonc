@@ -34,9 +34,7 @@
       "invocation_logs": true
     }
   },
-  "routes": [
-    "admindashboard.markdevelopers.in/*"
-  ],
+  "workers_dev": true,
   "vars": {
     "ADMIN_WORKER": "true",
     "ADMIN_HOST": "admindashboard.markdevelopers.in",
