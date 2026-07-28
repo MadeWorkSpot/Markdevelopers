@@ -93,9 +93,8 @@ const nextConfig: NextConfig = {
 
               // Scripts: same-origin + inline (required by Next.js hydration/RSC).
               // Cloudflare Web Analytics beacon (beacon.min.js).
-              // Cloudflare Turnstile CAPTCHA widget (challenges.cloudflare.com).
               // NOTE: No 'unsafe-eval' — Next.js App Router does not need it.
-              "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://challenges.cloudflare.com",
+              "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
 
               // Styles: same-origin + inline (required by Tailwind + Next.js CSS injection).
               "style-src 'self' 'unsafe-inline'",
@@ -110,15 +109,12 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
 
               // Connections: Firebase Auth, Firestore, Google OAuth, Cloudflare Analytics.
-              // Cloudflare Turnstile verification endpoint.
               // 'self' covers Next.js API routes and server actions.
               // Do NOT use 'connect-src none' — it would break Firebase, revalidation,
               // and any client-side data fetching.
-              "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.google.com https://oauth2.googleapis.com https://www.googleapis.com https://static.cloudflareinsights.com https://challenges.cloudflare.com",
+              "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.google.com https://oauth2.googleapis.com https://www.googleapis.com https://static.cloudflareinsights.com",
 
-              // Frame: Cloudflare Turnstile renders its widget inside an iframe.
-              // Restricted to the Turnstile origin only — no other framing allowed.
-              "frame-src https://challenges.cloudflare.com",
+              "frame-src 'none'",
 
               // Block all plugins (Flash, Java, etc.) — OWASP A03:2021.
               "object-src 'none'",

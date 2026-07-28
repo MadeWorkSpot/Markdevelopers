@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 import { readData, writeData } from "@/lib/data";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { verifyTurnstile } from "@/lib/turnstile";
 import { clearAuthCookies } from "@/lib/auth";
 
 const VALID_CONTENT_TYPES = [
@@ -140,12 +139,6 @@ export async function submitContact(_prev: unknown, formData: FormData) {
     }
     if (message.length > 5000) {
       return { error: "Message must be 5000 characters or less." };
-    }
-
-    const turnstileToken = formData.get("cf-turnstile-response") as string | null;
-    const turnstileResult = await verifyTurnstile(turnstileToken);
-    if (!turnstileResult.success) {
-      return { error: "Security verification failed. Please try again." };
     }
 
     const rl = await checkRateLimit(`contact:${email}`);
