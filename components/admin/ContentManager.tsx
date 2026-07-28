@@ -9,8 +9,12 @@ import { useConfirm } from "./ConfirmDialog";
 export type Field = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "url";
+  type: "text" | "textarea" | "image" | "video" | "url";
 };
+
+function isVideoUrl(url: string) {
+  return /\/video\/upload\//.test(url) || /\.(webm|mp4|ogg|mov|avi|mkv)(\?|$)/i.test(url);
+}
 
 export default function ContentManager({
   title,
@@ -169,7 +173,7 @@ export default function ContentManager({
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {fields.map((field) => (
-              <div key={field.key} className={field.type === "textarea" || field.type === "image" ? "sm:col-span-2" : ""}>
+              <div key={field.key} className={field.type === "textarea" || field.type === "image" || field.type === "video" ? "sm:col-span-2" : ""}>
                 <label className="mb-1 block text-xs font-medium text-zinc-500">
                   {field.label}
                 </label>
@@ -198,6 +202,37 @@ export default function ContentManager({
                         alt="Preview"
                         className="mt-2 h-24 w-40 rounded-lg object-cover max-w-full"
                       />
+                    )}
+                  </div>
+                ) : field.type === "video" ? (
+                  <div className="space-y-2">
+                    <input
+                      value={form[field.key] ?? ""}
+                      onChange={(e) => setForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                      placeholder="Video URL"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-zinc-500"
+                    />
+                    <ImageUploader
+                      onUpload={(url) => handleImageUpload(url, field.key)}
+                      onUploadingChange={(u) => setUploadingCount((c) => c + (u ? 1 : -1))}
+                      accept="video/*,image/*"
+                      maxSize={200}
+                      label="Video"
+                    />
+                    {form[field.key] && (
+                      isVideoUrl(form[field.key]) ? (
+                        <video
+                          src={form[field.key]}
+                          controls
+                          className="mt-2 h-24 w-40 rounded-lg object-cover max-w-full"
+                        />
+                      ) : (
+                        <img
+                          src={form[field.key]}
+                          alt="Preview"
+                          className="mt-2 h-24 w-40 rounded-lg object-cover max-w-full"
+                        />
+                      )
                     )}
                   </div>
                 ) : (
@@ -230,9 +265,10 @@ export default function ContentManager({
 
       <div className="space-y-3">
         {items.map((item, i) => {
-          const imageField = fields.find((f) => f.type === "image");
-          const imageUrl = imageField ? String(item[imageField.key] ?? "") : null;
-          const previewField = fields.find((f) => f.type !== "image");
+          const mediaField = fields.find((f) => f.type === "image" || f.type === "video");
+          const mediaUrl = mediaField ? String(item[mediaField.key] ?? "") : null;
+          const isMediaVideo = mediaUrl ? isVideoUrl(mediaUrl) : false;
+          const previewField = fields.find((f) => f.type !== "image" && f.type !== "video");
           const preview = previewField ? String(item[previewField.key] ?? "") : `Item ${i + 1}`;
 
           return (
@@ -260,12 +296,21 @@ export default function ContentManager({
                   </svg>
                 </div>
               )}
-              {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="h-14 w-20 flex-shrink-0 rounded-lg object-cover max-w-full"
-                />
+              {mediaUrl && (
+                isMediaVideo ? (
+                  <div className="flex h-14 w-20 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-6 w-6 text-zinc-400">
+                      <path d="M6.5 4.5A1.5 1.5 0 0 0 5 6v8a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 15 14V6a1.5 1.5 0 0 0-1.5-1.5h-7Z" />
+                      <path d="M12.5 9.5a.5.5 0 0 1 0 1l-4 2a.5.5 0 0 1-.75-.43v-4.14a.5.5 0 0 1 .75-.43l4 2Z" />
+                    </svg>
+                  </div>
+                ) : (
+                  <img
+                    src={mediaUrl}
+                    alt=""
+                    className="h-14 w-20 flex-shrink-0 rounded-lg object-cover max-w-full"
+                  />
+                )
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-white">{preview}</p>

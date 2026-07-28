@@ -3,6 +3,10 @@ import { readData } from "@/lib/data";
 
 export const revalidate = 60;
 
+function isVideoUrl(url: string) {
+  return /\/video\/upload\//.test(url) || /\.(webm|mp4|ogg)(\?|$)/i.test(url);
+}
+
 type GalleryData = {
   pageLabel: string;
   pageHeading: string;
@@ -10,12 +14,18 @@ type GalleryData = {
   images: { src: string; alt: string }[];
 };
 
+function firstImage(items: { src: string; alt: string }[]) {
+  return items.find((i) => !isVideoUrl(i.src));
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const data = await readData<GalleryData>("gallery");
 
   const pageSubtitle = data.pageSubtitle ?? "";
   const imageCount = (data.images ?? []).length;
   const description = pageSubtitle || `Browse our gallery of ${imageCount}+ premium construction and interior design projects by Mark Developers.`;
+
+  const ogImage = firstImage(data.images ?? []);
 
   return {
     title: "Gallery",
@@ -35,13 +45,13 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: "Mark Developers",
       type: "website",
       locale: "en_IN",
-      ...(data.images?.[0]?.src && {
+      ...(ogImage?.src && {
         images: [
           {
-            url: data.images[0].src,
+            url: ogImage.src,
             width: 1200,
             height: 630,
-            alt: data.images[0].alt || "Mark Developers Gallery",
+            alt: ogImage.alt || "Mark Developers Gallery",
           },
         ],
       }),
@@ -50,7 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title: "Gallery | Mark Developers",
       description,
-      ...(data.images?.[0]?.src && { images: [data.images[0].src] }),
+      ...(ogImage?.src && { images: [ogImage.src] }),
     },
     alternates: {
       canonical: "https://markdevelopers.in/gallery",
@@ -76,15 +86,27 @@ export default async function GalleryPage() {
           {data.pageSubtitle ?? ""}
         </p>
         <div className="mt-4 md:mt-8 columns-1 gap-6 sm:columns-2 lg:columns-3">
-          {(data.images ?? []).map((img, i) => (
+          {(data.images ?? []).map((item, i) => (
             <div key={i} className="group mb-6 break-inside-avoid overflow-hidden">
-              {img.src && (
-                <img
-                  src={img.src}
-                  alt={img.alt}
-                  loading="lazy"
+              {item.src && isVideoUrl(item.src) ? (
+                <video
+                  src={item.src}
+                  controls
+                  playsInline
+                  preload="metadata"
                   className="w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                />
+                >
+                  Your browser does not support the video tag.
+                </video>
+              ) : (
+                item.src && (
+                  <img
+                    src={item.src}
+                    alt={item.alt}
+                    loading="lazy"
+                    className="w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                  />
+                )
               )}
             </div>
           ))}

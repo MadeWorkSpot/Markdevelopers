@@ -4,8 +4,10 @@ import { adminAuth } from "@/lib/firebase-admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { clearAuthCookies } from "@/lib/auth";
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif"];
-const MAX_SIZE = 10 * 1024 * 1024;
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-msvideo", "video/x-matroska"];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif", ...VIDEO_TYPES];
+const IMAGE_MAX_SIZE = 10 * 1024 * 1024;
+const VIDEO_MAX_SIZE = 200 * 1024 * 1024;
 const MAX_FILENAME_LENGTH = 255;
 
 export function sanitizeFileName(name: string): string {
@@ -43,15 +45,19 @@ export async function POST(req: NextRequest) {
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
+      const allowed = "JPEG, PNG, GIF, WebP, AVIF, MP4, WebM, OGG, MOV, AVI, MKV";
       return NextResponse.json(
-        { error: "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, AVIF." },
+        { error: `Invalid file type. Allowed: ${allowed}.` },
         { status: 400 }
       );
     }
 
-    if (file.size > MAX_SIZE) {
+    const isVideo = VIDEO_TYPES.includes(file.type);
+    const maxSize = isVideo ? VIDEO_MAX_SIZE : IMAGE_MAX_SIZE;
+    if (file.size > maxSize) {
+      const sizeLabel = isVideo ? "200 MB" : "10 MB";
       return NextResponse.json(
-        { error: "File too large. Maximum size is 10 MB." },
+        { error: `File too large. Maximum size is ${sizeLabel}.` },
         { status: 400 }
       );
     }
@@ -67,20 +73,59 @@ export async function POST(req: NextRequest) {
     const timestamp = Math.round(Date.now() / 1000);
     const folder = "markdev";
 
+    const buffer = await file.arrayBuffer();
+    const safeName = sanitizeFileName(file.name);
+
+    if (isVideo) {
+      const eager = "f_webm";
+      const paramsToSign: Record<string, string> = {
+        folder,
+        timestamp: String(timestamp),
+        eager,
+        eager_async: "false",
+      };
+      const sorted = Object.keys(paramsToSign).sort().map(k => `${k}=${paramsToSign[k]}`).join("&");
+      const sigBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sorted + apiSecret));
+      const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+      const newFile = new File([buffer], safeName, { type: file.type });
+      const uploadForm = new FormData();
+      uploadForm.append("file", newFile);
+      uploadForm.append("api_key", apiKey);
+      uploadForm.append("timestamp", String(timestamp));
+      uploadForm.append("folder", folder);
+      uploadForm.append("eager", eager);
+      uploadForm.append("eager_async", "false");
+      uploadForm.append("quality", "auto");
+      uploadForm.append("signature", signature);
+      uploadForm.append("sha_type", "sha256");
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+        { method: "POST", body: uploadForm }
+      );
+
+      const data = await res.json();
+      if (!res.ok || !data.secure_url) {
+        console.error("Cloudinary video upload error:", res.status);
+        return NextResponse.json({ error: "Video upload failed. Please try again." }, { status: 500 });
+      }
+
+      const webmUrl = data.eager?.[0]?.secure_url
+        || `https://res.cloudinary.com/${cloudName}/video/upload/f_webm/${data.public_id}.webm`;
+
+      return NextResponse.json({ url: webmUrl });
+    }
+
     const paramsToSign: Record<string, string> = {
       folder,
       timestamp: String(timestamp),
     };
     const sorted = Object.keys(paramsToSign).sort().map(k => `${k}=${paramsToSign[k]}`).join("&");
-    // SHA-256 is used instead of SHA-1 for stronger signature security.
-    // Cloudinary supports SHA-256 via the sha_type parameter.
     const sigBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sorted + apiSecret));
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
-    const buffer = await file.arrayBuffer();
-    const safeName = sanitizeFileName(file.name);
     const newFile = new File([buffer], safeName, { type: file.type });
-
     const uploadForm = new FormData();
     uploadForm.append("file", newFile);
     uploadForm.append("api_key", apiKey);
@@ -97,9 +142,9 @@ export async function POST(req: NextRequest) {
     );
 
     const data = await res.json();
-    if (!res.ok || !data.secure_url) {
-      console.error("Cloudinary error:", res.status);
-      return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
+      if (!res.ok || !data.secure_url) {
+        console.error("Cloudinary image upload error:", res.status);
+        return NextResponse.json({ error: "Image upload failed. Please try again." }, { status: 500 });
     }
 
     return NextResponse.json({ url: data.secure_url });

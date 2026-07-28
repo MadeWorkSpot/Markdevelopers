@@ -18,10 +18,10 @@ export default async function GalleryPage() {
         fileName="gallery"
       />
       <ContentManager
-        title="Gallery Images"
+        title="Gallery Media"
         items={data.images ?? []}
         fields={[
-          { key: "src", label: "Image URL", type: "image" },
+          { key: "src", label: "Image / Video URL", type: "video" },
           { key: "alt", label: "Alt Text", type: "text" },
         ]}
         onSave={updateArrayItem.bind(null, "gallery", "images")}

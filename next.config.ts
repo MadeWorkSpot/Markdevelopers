@@ -106,6 +106,9 @@ const nextConfig: NextConfig = {
               // when new image sources are added. Images are low-risk for CSP bypass.
               "img-src 'self' https: data: blob:",
 
+              // Media (video/audio): Cloudinary video hosting.
+              "media-src 'self' https://res.cloudinary.com https:",
+
               // Fonts: Google Fonts (used via next/font or CSS import).
               "font-src 'self' https://fonts.gstatic.com",
 

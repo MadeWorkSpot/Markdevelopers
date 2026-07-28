@@ -8,6 +8,7 @@ import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { clearAuthCookies } from "@/lib/auth";
+import { Resend } from "resend";
 
 const VALID_CONTENT_TYPES = [
   "carousel", "services", "projects", "gallery",
@@ -165,6 +166,29 @@ export async function submitContact(_prev: unknown, formData: FormData) {
     if (!docRef.id) {
       return { error: "Message could not be saved. Please try again." };
     }
+
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      try {
+        const contactDoc = await db.collection("content").doc("contact").get();
+        const contactEmail = (contactDoc.data() as { email?: string } | undefined)?.email;
+        if (contactEmail) {
+          const resend = new Resend(resendApiKey);
+          await resend.emails.send({
+            from: "Mark Developers <onboarding@resend.dev>",
+            to: [contactEmail],
+            subject: `New Contact Form Submission from ${name}`,
+            html: `<p><strong>Name:</strong> ${name.replace(/</g, "&lt;")}</p>
+<p><strong>Email:</strong> ${email.replace(/</g, "&lt;")}</p>
+<p><strong>Message:</strong></p>
+<p>${message.replace(/\n/g, "<br>").replace(/</g, "&lt;")}</p>`,
+          });
+        }
+      } catch {
+        console.error("[submitContact] Failed to send email notification");
+      }
+    }
+
     return { success: true };
   } catch (err) {
     console.error("[submitContact] Error:", err);
