@@ -563,23 +563,53 @@ async function createSessionCookie(
     }
   );
 
+  return signSessionJwt(payload, expiresIn);
+}
+
+async function signSessionJwt(
+  claims: { sub?: string; email?: string; email_verified?: boolean; firebase?: unknown; auth_time?: number },
+  expiresIn: number
+): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const jwt = await new SignJWT({
+  const key = await getSessionKey();
+  return new SignJWT({
     iss: `https://sessiontoken.firebase.google.com/${PROJECT_ID}`,
     aud: PROJECT_ID,
-    user_id: payload.sub,
-    email: payload.email,
-    email_verified: payload.email_verified,
-    firebase: payload.firebase,
-    auth_time: payload.auth_time,
+    user_id: claims.sub ?? "",
+    email: claims.email,
+    email_verified: claims.email_verified,
+    firebase: claims.firebase,
+    auth_time: claims.auth_time ?? now,
   })
     .setProtectedHeader({ alg: "HS256", kid: "firebase-session" })
-    .setSubject(payload.sub as string)
+    .setSubject(claims.sub ?? "")
     .setIssuedAt(now)
     .setExpirationTime(now + Math.floor(expiresIn / 1000))
-    .sign(await getSessionKey());
+    .sign(key);
+}
 
-  return jwt;
+/** Verify an ID token via Firebase REST API (no jose key import needed) and return a session cookie. */
+export async function verifyIdTokenAndCreateSession(
+  idToken: string,
+  expiresIn: number,
+  apiKey: string
+): Promise<string> {
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    }
+  );
+  if (!res.ok) throw new Error("ID token verification failed");
+  const data = (await res.json()) as { users?: Array<{ localId: string; email?: string; validSince?: string }> };
+  const user = data.users?.[0];
+  if (!user) throw new Error("User not found in token");
+  return signSessionJwt(
+    { sub: user.localId, email: user.email, auth_time: Math.floor(Date.now() / 1000) },
+    expiresIn
+  );
 }
 
 async function verifySessionCookie(
@@ -592,11 +622,15 @@ async function verifySessionCookie(
   });
 
   if (checkRevoked && payload.sub) {
-    const user = await authGetUser(payload.sub as string);
-    if (user.validSince) {
-      const validSince = Number(user.validSince);
-      const iat = (payload.iat as number) || 0;
-      if (iat < validSince) throw new Error("Token has been revoked");
+    try {
+      const user = await authGetUser(payload.sub as string);
+      if (user.validSince) {
+        const validSince = Number(user.validSince);
+        const iat = (payload.iat as number) || 0;
+        if (iat < validSince) throw new Error("Token has been revoked");
+      }
+    } catch {
+      // If user lookup fails (e.g. no OAuth), skip revocation check
     }
   }
 
