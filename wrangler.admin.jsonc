@@ -26,6 +26,11 @@
   "images": {
     "binding": "IMAGES"
   },
+  "vars": {
+    "PUBLIC_HOST": "markdevelopers.in",
+    "ADMIN_HOST_PREFIX": "admindashboard.",
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "1x00000000000000000000AA"
+  },
   "observability": {
     "enabled": true,
     "logs": {

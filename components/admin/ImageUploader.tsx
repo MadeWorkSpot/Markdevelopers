@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { toast } from "./Toaster";
 
-export default function ImageUploader({ onUpload, onUploadingChange, id = "image-upload" }: { onUpload: (url: string) => void; onUploadingChange?: (uploading: boolean) => void; id?: string }) {
+export default function ImageUploader({ onUpload, onUploadingChange, id = "file-upload", accept = "image/*", maxSize = 10, label = "Upload" }: { onUpload: (url: string) => void; onUploadingChange?: (uploading: boolean) => void; id?: string; accept?: string; maxSize?: number; label?: string }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -11,8 +11,8 @@ export default function ImageUploader({ onUpload, onUploadingChange, id = "image
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 10 MB.");
+    if (file.size > maxSize * 1024 * 1024) {
+      toast.error(`File too large. Maximum size is ${maxSize} MB.`);
       if (inputRef.current) inputRef.current.value = "";
       return;
     }
@@ -47,7 +47,7 @@ export default function ImageUploader({ onUpload, onUploadingChange, id = "image
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={accept}
         onChange={handleFile}
         className="hidden"
         id={id}
@@ -57,7 +57,7 @@ export default function ImageUploader({ onUpload, onUploadingChange, id = "image
         htmlFor={id}
         className={`rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-700/50 ${uploading ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
       >
-        {uploading ? "Uploading..." : "Upload Image"}
+        {uploading ? "Uploading..." : `Upload ${label}`}
       </label>
     </div>
   );

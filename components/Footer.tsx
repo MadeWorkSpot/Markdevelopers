@@ -82,7 +82,7 @@ export default async function Footer() {
           <div>
             <h3 className="mb-5 text-xs sm:text-sm md:text-base font-semibold tracking-wider uppercase text-white/50">{site.footerContactHeading ?? ""}</h3>
             <div className="flex flex-col gap-3 text-sm text-white/60">
-              <p>{contact.email ?? ""}</p>
+              {contact.email ? <a href={`mailto:${contact.email}`} className="hover:text-white transition-colors">{contact.email}</a> : null}
               <p>{contact.phone ?? ""}</p>
               {(contact.address ?? "").split(",").map((line, i) => (
                 <p key={i}>{line.trim()}</p>

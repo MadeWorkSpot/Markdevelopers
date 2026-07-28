@@ -13,6 +13,10 @@ concurrency:
 env:
   NODE_VERSION: "22"
 
+# ── Build-time (NEXT_PUBLIC_*) vars are inlined at build time.
+#    Runtime vars must be set on the Worker via wrangler.jsonc [vars]
+#    (non-sensitive) or wrangler secret put (sensitive).
+
 jobs:
   lint:
     name: Lint
@@ -107,14 +111,14 @@ jobs:
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           PUBLIC_HOST: ${{ secrets.PUBLIC_HOST }}
-          ADMIN_HOST: ${{ secrets.ADMIN_HOST }}
+          ADMIN_HOST_PREFIX: ${{ secrets.ADMIN_HOST_PREFIX }}
 
   deploy:
     name: Deploy to Cloudflare
     needs: build
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     environment:
       name: production
       url: ${{ vars.PUBLIC_HOST }}
@@ -147,31 +151,45 @@ jobs:
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           PUBLIC_HOST: ${{ secrets.PUBLIC_HOST }}
-          ADMIN_HOST: ${{ secrets.ADMIN_HOST }}
+          ADMIN_HOST_PREFIX: ${{ secrets.ADMIN_HOST_PREFIX }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
 
       - name: Deploy public worker
         run: npx opennextjs-cloudflare deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
-          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          PUBLIC_HOST: ${{ secrets.PUBLIC_HOST }}
-          ADMIN_HOST: ${{ secrets.ADMIN_HOST }}
+
+      # Set runtime secrets for the public worker.
+      # wrangler secret put reads the value from stdin.
+      - name: Set public worker secrets
+        run: |
+          echo "${{ secrets.FIREBASE_CLIENT_EMAIL }}" | npx wrangler secret put FIREBASE_CLIENT_EMAIL
+          echo "${{ secrets.FIREBASE_PRIVATE_KEY }}" | npx wrangler secret put FIREBASE_PRIVATE_KEY
+          echo "${{ secrets.CLOUDINARY_API_SECRET }}" | npx wrangler secret put CLOUDINARY_API_SECRET
+          echo "${{ secrets.RESEND_API_KEY }}" | npx wrangler secret put RESEND_API_KEY
+          echo "${{ secrets.SESSION_SECRET }}" | npx wrangler secret put SESSION_SECRET
+          echo "${{ secrets.TURNSTILE_SECRET_KEY }}" | npx wrangler secret put TURNSTILE_SECRET_KEY
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy admin worker
         run: npx wrangler deploy --config wrangler.admin.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # Set runtime secrets for the admin worker.
+      - name: Set admin worker secrets
+        run: |
+          echo "${{ secrets.FIREBASE_CLIENT_EMAIL }}" | npx wrangler secret put FIREBASE_CLIENT_EMAIL --config wrangler.admin.jsonc
+          echo "${{ secrets.FIREBASE_PRIVATE_KEY }}" | npx wrangler secret put FIREBASE_PRIVATE_KEY --config wrangler.admin.jsonc
+          echo "${{ secrets.CLOUDINARY_API_SECRET }}" | npx wrangler secret put CLOUDINARY_API_SECRET --config wrangler.admin.jsonc
+          echo "${{ secrets.RESEND_API_KEY }}" | npx wrangler secret put RESEND_API_KEY --config wrangler.admin.jsonc
+          echo "${{ secrets.SESSION_SECRET }}" | npx wrangler secret put SESSION_SECRET --config wrangler.admin.jsonc
+          echo "${{ secrets.TURNSTILE_SECRET_KEY }}" | npx wrangler secret put TURNSTILE_SECRET_KEY --config wrangler.admin.jsonc
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
