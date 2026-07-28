@@ -136,7 +136,7 @@ function fromRestValue(val: Record<string, unknown> | undefined): unknown {
   return undefined;
 }
 
-function fromRestDoc(
+export function fromRestDoc(
   doc: { fields?: Record<string, Record<string, unknown>> } | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, any> {
