@@ -33,5 +33,11 @@
       "persist": true,
       "invocation_logs": true
     }
+  },
+  "vars": {
+    "ADMIN_WORKER": "true",
+    "ADMIN_HOST": "admindashboard.markdevelopers.in",
+    "ADMIN_HOST_PREFIX": "admindashboard.",
+    "PUBLIC_HOST": "markdevelopers.in"
   }
 }

@@ -10,7 +10,8 @@ export function middleware(request: NextRequest) {
   const hostHeader = request.headers.get("host") || "";
   const host = hostHeader.split(":")[0];
 
-  const isAdmin = host.startsWith(ADMIN_PREFIX);
+  const isAdminWorker = process.env.ADMIN_WORKER === "true";
+  const isAdmin = isAdminWorker || host.startsWith(ADMIN_PREFIX) || host === process.env.ADMIN_HOST;
 
   if (isAdmin) {
     const origin = `${request.nextUrl.protocol}//${host}`;
