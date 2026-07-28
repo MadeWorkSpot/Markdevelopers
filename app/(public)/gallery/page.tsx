@@ -19,53 +19,60 @@ function firstImage(items: { src: string; alt: string }[]) {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const data = await readData<GalleryData>("gallery");
+  try {
+    const data = await readData<GalleryData>("gallery");
 
-  const pageSubtitle = data.pageSubtitle ?? "";
-  const imageCount = (data.images ?? []).length;
-  const description = pageSubtitle || `Browse our gallery of ${imageCount}+ premium construction and interior design projects by Mark Developers.`;
+    const pageSubtitle = data.pageSubtitle ?? "";
+    const imageCount = (data.images ?? []).length;
+    const description = pageSubtitle || `Browse our gallery of ${imageCount}+ premium construction and interior design projects by Mark Developers.`;
 
-  const ogImage = firstImage(data.images ?? []);
+    const ogImage = firstImage(data.images ?? []);
 
-  return {
-    title: "Gallery",
-    description,
-    keywords: [
-      "construction gallery",
-      "interior design photos",
-      "building projects gallery",
-      "premium construction work",
-      "renovation photos",
-      "Mark Developers gallery",
-    ],
-    openGraph: {
-      title: "Gallery | Mark Developers",
+    return {
+      title: "Gallery",
       description,
-      url: "https://markdevelopers.in/gallery",
-      siteName: "Mark Developers",
-      type: "website",
-      locale: "en_IN",
-      ...(ogImage?.src && {
-        images: [
-          {
-            url: ogImage.src,
-            width: 1200,
-            height: 630,
-            alt: ogImage.alt || "Mark Developers Gallery",
-          },
-        ],
-      }),
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: "Gallery | Mark Developers",
-      description,
-      ...(ogImage?.src && { images: [ogImage.src] }),
-    },
-    alternates: {
-      canonical: "https://markdevelopers.in/gallery",
-    },
-  };
+      keywords: [
+        "construction gallery",
+        "interior design photos",
+        "building projects gallery",
+        "premium construction work",
+        "renovation photos",
+        "Mark Developers gallery",
+      ],
+      openGraph: {
+        title: "Gallery | Mark Developers",
+        description,
+        url: "https://markdevelopers.in/gallery",
+        siteName: "Mark Developers",
+        type: "website",
+        locale: "en_IN",
+        ...(ogImage?.src && {
+          images: [
+            {
+              url: ogImage.src,
+              width: 1200,
+              height: 630,
+              alt: ogImage.alt || "Mark Developers Gallery",
+            },
+          ],
+        }),
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: "Gallery | Mark Developers",
+        description,
+        ...(ogImage?.src && { images: [ogImage.src] }),
+      },
+      alternates: {
+        canonical: "https://markdevelopers.in/gallery",
+      },
+    };
+  } catch {
+    return {
+      title: "Gallery",
+      description: "Browse our gallery of premium construction and interior design projects by Mark Developers.",
+    };
+  }
 }
 
 export default async function GalleryPage() {
