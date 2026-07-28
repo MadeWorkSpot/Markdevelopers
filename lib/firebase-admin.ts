@@ -2,7 +2,9 @@ import { SignJWT, jwtVerify, importPKCS8, importX509 } from "jose";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
 const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL || "";
-const PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY || "";
+const PRIVATE_KEY_RAW = process.env.FIREBASE_PRIVATE_KEY || "";
+const PRIVATE_KEY_B64 = process.env.FIREBASE_PRIVATE_KEY_B64 || "";
+const PRIVATE_KEY = PRIVATE_KEY_B64 ? atob(PRIVATE_KEY_B64) : PRIVATE_KEY_RAW;
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
@@ -33,8 +35,14 @@ function normalizePem(raw: string): string {
 
 function getPrivateKey(): Promise<CryptoKey> {
   if (!privateKeyPromise) {
-    const pem = normalizePem(PRIVATE_KEY);
-    privateKeyPromise = importPKCS8(pem, "RS256");
+    privateKeyPromise = (async () => {
+      try {
+        return await importPKCS8(normalizePem(PRIVATE_KEY), "RS256");
+      } catch (e) {
+        privateKeyPromise = null;
+        throw e;
+      }
+    })();
   }
   return privateKeyPromise;
 }
