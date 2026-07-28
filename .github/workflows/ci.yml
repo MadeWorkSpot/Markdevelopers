@@ -167,6 +167,7 @@ jobs:
         run: |
           echo "${{ secrets.FIREBASE_CLIENT_EMAIL }}" | npx wrangler secret put FIREBASE_CLIENT_EMAIL
           echo "${{ secrets.FIREBASE_PRIVATE_KEY }}" | npx wrangler secret put FIREBASE_PRIVATE_KEY
+          echo "${{ secrets.FIREBASE_PRIVATE_KEY }}" | base64 -w0 | npx wrangler secret put FIREBASE_PRIVATE_KEY_B64
           echo "${{ secrets.CLOUDINARY_API_SECRET }}" | npx wrangler secret put CLOUDINARY_API_SECRET
           echo "${{ secrets.RESEND_API_KEY }}" | npx wrangler secret put RESEND_API_KEY
           echo "${{ secrets.SESSION_SECRET }}" | npx wrangler secret put SESSION_SECRET
@@ -186,6 +187,7 @@ jobs:
         run: |
           echo "${{ secrets.FIREBASE_CLIENT_EMAIL }}" | npx wrangler secret put FIREBASE_CLIENT_EMAIL --config wrangler.admin.jsonc
           echo "${{ secrets.FIREBASE_PRIVATE_KEY }}" | npx wrangler secret put FIREBASE_PRIVATE_KEY --config wrangler.admin.jsonc
+          echo "${{ secrets.FIREBASE_PRIVATE_KEY }}" | base64 -w0 | npx wrangler secret put FIREBASE_PRIVATE_KEY_B64 --config wrangler.admin.jsonc
           echo "${{ secrets.CLOUDINARY_API_SECRET }}" | npx wrangler secret put CLOUDINARY_API_SECRET --config wrangler.admin.jsonc
           echo "${{ secrets.RESEND_API_KEY }}" | npx wrangler secret put RESEND_API_KEY --config wrangler.admin.jsonc
           echo "${{ secrets.SESSION_SECRET }}" | npx wrangler secret put SESSION_SECRET --config wrangler.admin.jsonc

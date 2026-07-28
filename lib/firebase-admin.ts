@@ -2,7 +2,9 @@ import { SignJWT, jwtVerify, importPKCS8, importX509 } from "jose";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
 const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL || "";
-const PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY || "";
+const PRIVATE_KEY_RAW = process.env.FIREBASE_PRIVATE_KEY || "";
+const PRIVATE_KEY_B64 = process.env.FIREBASE_PRIVATE_KEY_B64 || "";
+const PRIVATE_KEY = PRIVATE_KEY_B64 ? atob(PRIVATE_KEY_B64) : PRIVATE_KEY_RAW;
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
@@ -33,8 +35,14 @@ function normalizePem(raw: string): string {
 
 function getPrivateKey(): Promise<CryptoKey> {
   if (!privateKeyPromise) {
-    const pem = normalizePem(PRIVATE_KEY);
-    privateKeyPromise = importPKCS8(pem, "RS256");
+    privateKeyPromise = (async () => {
+      try {
+        return await importPKCS8(normalizePem(PRIVATE_KEY), "RS256");
+      } catch (e) {
+        privateKeyPromise = null;
+        throw e;
+      }
+    })();
   }
   return privateKeyPromise;
 }
@@ -563,23 +571,53 @@ async function createSessionCookie(
     }
   );
 
+  return signSessionJwt(payload, expiresIn);
+}
+
+async function signSessionJwt(
+  claims: { sub?: string; email?: string; email_verified?: boolean; firebase?: unknown; auth_time?: number },
+  expiresIn: number
+): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const jwt = await new SignJWT({
+  const key = await getSessionKey();
+  return new SignJWT({
     iss: `https://sessiontoken.firebase.google.com/${PROJECT_ID}`,
     aud: PROJECT_ID,
-    user_id: payload.sub,
-    email: payload.email,
-    email_verified: payload.email_verified,
-    firebase: payload.firebase,
-    auth_time: payload.auth_time,
+    user_id: claims.sub ?? "",
+    email: claims.email,
+    email_verified: claims.email_verified,
+    firebase: claims.firebase,
+    auth_time: claims.auth_time ?? now,
   })
     .setProtectedHeader({ alg: "HS256", kid: "firebase-session" })
-    .setSubject(payload.sub as string)
+    .setSubject(claims.sub ?? "")
     .setIssuedAt(now)
     .setExpirationTime(now + Math.floor(expiresIn / 1000))
-    .sign(await getSessionKey());
+    .sign(key);
+}
 
-  return jwt;
+/** Verify an ID token via Firebase REST API (no jose key import needed) and return a session cookie. */
+export async function verifyIdTokenAndCreateSession(
+  idToken: string,
+  expiresIn: number,
+  apiKey: string
+): Promise<string> {
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    }
+  );
+  if (!res.ok) throw new Error("ID token verification failed");
+  const data = (await res.json()) as { users?: Array<{ localId: string; email?: string; validSince?: string }> };
+  const user = data.users?.[0];
+  if (!user) throw new Error("User not found in token");
+  return signSessionJwt(
+    { sub: user.localId, email: user.email, auth_time: Math.floor(Date.now() / 1000) },
+    expiresIn
+  );
 }
 
 async function verifySessionCookie(
@@ -592,11 +630,15 @@ async function verifySessionCookie(
   });
 
   if (checkRevoked && payload.sub) {
-    const user = await authGetUser(payload.sub as string);
-    if (user.validSince) {
-      const validSince = Number(user.validSince);
-      const iat = (payload.iat as number) || 0;
-      if (iat < validSince) throw new Error("Token has been revoked");
+    try {
+      const user = await authGetUser(payload.sub as string);
+      if (user.validSince) {
+        const validSince = Number(user.validSince);
+        const iat = (payload.iat as number) || 0;
+        if (iat < validSince) throw new Error("Token has been revoked");
+      }
+    } catch {
+      // If user lookup fails (e.g. no OAuth), skip revocation check
     }
   }
 

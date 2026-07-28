@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { readData, writeData } from "@/lib/data";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { adminAuth, adminDb, verifyIdTokenAndCreateSession } from "@/lib/firebase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { clearAuthCookies } from "@/lib/auth";
@@ -80,9 +80,7 @@ export async function login(_prev: unknown, formData: FormData) {
       return { error: "Invalid email or password." };
     }
 
-    sessionCookie = await adminAuth.createSessionCookie(data.idToken, {
-      expiresIn: 60 * 60 * 24 * 1000,
-    });
+    sessionCookie = await verifyIdTokenAndCreateSession(data.idToken, 60 * 60 * 24 * 1000, apiKey);
     refreshToken = data.refreshToken;
   } catch {
     return { error: "Authentication failed." };
