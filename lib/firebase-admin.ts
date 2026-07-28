@@ -19,6 +19,7 @@ let tokenPromise: Promise<string> | null = null;
 
 function normalizePem(raw: string): string {
   let s = raw.replace(/\r\n/g, "\n").replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").trim();
+  s = s.replace(/^"+|"+$/g, "");
   const header = "-----BEGIN PRIVATE KEY-----";
   const footer = "-----END PRIVATE KEY-----";
   const hIdx = s.indexOf(header);
