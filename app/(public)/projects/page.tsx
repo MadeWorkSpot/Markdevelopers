@@ -12,53 +12,60 @@ type ProjectsData = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const data = await readData<ProjectsData>("projects");
+  try {
+    const data = await readData<ProjectsData>("projects");
 
-  const pageSubtitle = data.pageSubtitle ?? "";
-  const projectCount = (data.projects ?? []).length;
-  const description = pageSubtitle || `Explore ${projectCount}+ completed construction and design projects by Mark Developers. Premium quality craftsmanship and modern architecture.`;
+    const pageSubtitle = data.pageSubtitle ?? "";
+    const projectCount = (data.projects ?? []).length;
+    const description = pageSubtitle || `Explore ${projectCount}+ completed construction and design projects by Mark Developers. Premium quality craftsmanship and modern architecture.`;
 
-  return {
-    title: "Projects",
-    description,
-    keywords: [
-      "construction projects",
-      "building portfolio",
-      "interior design projects",
-      "completed projects",
-      "premium construction work",
-      "Mark Developers projects",
-      "residential projects",
-      "commercial projects",
-    ],
-    openGraph: {
-      title: "Projects | Mark Developers",
+    return {
+      title: "Projects",
       description,
-      url: "https://markdevelopers.in/projects",
-      siteName: "Mark Developers",
-      type: "website",
-      locale: "en_IN",
-      ...(data.projects?.[0]?.image && {
-        images: [
-          {
-            url: data.projects[0].image,
-            width: 1200,
-            height: 630,
-            alt: data.projects[0].title || "Mark Developers Projects",
-          },
-        ],
-      }),
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: "Projects | Mark Developers",
-      description,
-      ...(data.projects?.[0]?.image && { images: [data.projects[0].image] }),
-    },
-    alternates: {
-      canonical: "https://markdevelopers.in/projects",
-    },
-  };
+      keywords: [
+        "construction projects",
+        "building portfolio",
+        "interior design projects",
+        "completed projects",
+        "premium construction work",
+        "Mark Developers projects",
+        "residential projects",
+        "commercial projects",
+      ],
+      openGraph: {
+        title: "Projects | Mark Developers",
+        description,
+        url: "https://markdevelopers.in/projects",
+        siteName: "Mark Developers",
+        type: "website",
+        locale: "en_IN",
+        ...(data.projects?.[0]?.image && {
+          images: [
+            {
+              url: data.projects[0].image,
+              width: 1200,
+              height: 630,
+              alt: data.projects[0].title || "Mark Developers Projects",
+            },
+          ],
+        }),
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: "Projects | Mark Developers",
+        description,
+        ...(data.projects?.[0]?.image && { images: [data.projects[0].image] }),
+      },
+      alternates: {
+        canonical: "https://markdevelopers.in/projects",
+      },
+    };
+  } catch {
+    return {
+      title: "Projects",
+      description: "Explore completed construction and design projects by Mark Developers.",
+    };
+  }
 }
 
 export default async function ProjectsPage() {
