@@ -13,6 +13,12 @@ export function middleware(request: NextRequest) {
   const isAdminWorker = process.env.ADMIN_WORKER === "true";
   const isAdmin = isAdminWorker || host.startsWith(ADMIN_PREFIX) || host === process.env.ADMIN_HOST;
 
+  // In local dev (localhost / 127.0.0.1), skip both admin and public rewrites
+  // so both route groups work without a subdomain distinction.
+  if (host === "localhost" || host === "127.0.0.1") {
+    return NextResponse.next();
+  }
+
   if (isAdmin) {
     const origin = `${request.nextUrl.protocol}//${host}`;
 
