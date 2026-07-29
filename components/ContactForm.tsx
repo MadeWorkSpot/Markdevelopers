@@ -26,16 +26,27 @@ export default function ContactForm({
   const [state, formAction, pending] = useActionState(submitContact, null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
+  const [failureGeneration, setFailureGeneration] = useState(0);
+  const [tokenGeneration, setTokenGeneration] = useState(0);
   const id = useId();
 
   const securityFailed = state?.error?.includes("Security verification failed") ?? false;
 
-  const effectiveToken = securityFailed ? "" : turnstileToken;
-  const effectiveKey = securityFailed ? turnstileKey + 1 : turnstileKey;
+  if (securityFailed && failureGeneration === 0) {
+    setFailureGeneration(tokenGeneration);
+  }
+  if (!securityFailed && failureGeneration !== 0) {
+    setFailureGeneration(0);
+  }
+
+  const tokenIsStale = securityFailed && tokenGeneration <= failureGeneration;
+  const effectiveToken = tokenIsStale ? "" : turnstileToken;
+  const effectiveKey = tokenIsStale ? turnstileKey + 1 : turnstileKey;
 
   const handleTokenChange = useCallback((token: string) => {
     setTurnstileToken(token);
     setTurnstileKey((k) => k + 1);
+    setTokenGeneration((g) => g + 1);
   }, []);
 
   return (
