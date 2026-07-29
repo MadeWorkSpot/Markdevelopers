@@ -3,6 +3,8 @@ import PageTextEditor from "@/components/admin/PageTextEditor";
 import { readData } from "@/lib/data";
 import { addArrayItem, updateArrayItem, deleteArrayItem, reorderArray } from "@/actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function GalleryPage() {
   const data = await readData<{ images: Record<string, unknown>[] }>("gallery");
   return (
@@ -18,10 +20,12 @@ export default async function GalleryPage() {
         fileName="gallery"
       />
       <ContentManager
-        title="Gallery Images"
+        title="Gallery Items"
         items={data.images ?? []}
         fields={[
-          { key: "src", label: "Image URL", type: "image" },
+          { key: "type", label: "Type", type: "select", options: ["image", "video"] },
+          { key: "src", label: "Image URL", type: "image", dependsOn: { key: "type", value: "image" } },
+          { key: "videoSrc", label: "Video URL", type: "video", dependsOn: { key: "type", value: "video" } },
           { key: "alt", label: "Alt Text", type: "text" },
         ]}
         onSave={updateArrayItem.bind(null, "gallery", "images")}

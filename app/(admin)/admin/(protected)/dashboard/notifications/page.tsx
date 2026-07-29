@@ -13,16 +13,22 @@ type Message = {
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 50;
+
 export default async function NotificationsPage() {
   const snapshot = await adminDb
     .collection("messages")
     .orderBy("createdAt", "desc")
     .get();
 
-  const messages: Message[] = snapshot.docs.map((doc) => ({
+  const allMessages: Message[] = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...(doc.data() as Omit<Message, "id">),
   }));
+
+  const messages = allMessages.slice(0, PAGE_SIZE);
+  const totalCount = allMessages.length;
+  const hasMore = totalCount > PAGE_SIZE;
 
   return (
     <div>
@@ -31,7 +37,8 @@ export default async function NotificationsPage() {
         <div>
           <h1 className="text-xl font-medium text-white sm:text-2xl">Notifications</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            {messages.length} message{messages.length !== 1 ? "s" : ""}
+            Showing {messages.length} of {totalCount} message{totalCount !== 1 ? "s" : ""}
+            {hasMore && " (latest 50 shown)"}
           </p>
         </div>
       </div>

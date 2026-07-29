@@ -11,6 +11,23 @@ const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const FIREBASE_KEYS_URL =
   "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 500;
+
+async function fetchWithRetry(
+  url: string,
+  init?: RequestInit,
+  retries = MAX_RETRIES
+): Promise<Response> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const res = await fetch(url, init);
+    if (res.ok || attempt === retries - 1) return res;
+    if (res.status >= 400 && res.status < 500) return res;
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * Math.pow(2, attempt)));
+  }
+  throw new Error(`Fetch failed after ${retries} retries: ${url}`);
+}
+
 // ── OAuth2 Token ─────────────────────────────────────────────
 
 let tokenCache: { token: string; expiresAt: number } | null = null;
@@ -56,7 +73,7 @@ async function getAccessToken(): Promise<string> {
       .setExpirationTime("55m")
       .sign(pk);
 
-    const res = await fetch(TOKEN_URL, {
+    const res = await fetchWithRetry(TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -137,8 +154,7 @@ function fromRestValue(val: Record<string, unknown> | undefined): unknown {
 
 function fromRestDoc(
   doc: { fields?: Record<string, Record<string, unknown>> } | undefined
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Record<string, any> {
+): Record<string, unknown> {
   if (!doc?.fields) return {};
   const result: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(doc.fields))
@@ -202,12 +218,12 @@ async function fsPatch(
       .join("&");
     url += `?${params}`;
   }
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: "PATCH",
     headers,
     body: JSON.stringify({ fields }),
   });
-  if (!res.ok) throw new Error(`PATCH ${path}: ${res.status}`);
+  if (!res.ok) throw new Error(`PATCH ${path}: ${res.status} ${await res.text().catch(() => "")}`);
 }
 
 async function fsPost(
@@ -215,12 +231,12 @@ async function fsPost(
   fields: Record<string, Record<string, unknown>>
 ): Promise<string> {
   const headers = await authHeaders();
-  const res = await fetch(`${FIRESTORE_BASE}/${collection}`, {
+  const res = await fetchWithRetry(`${FIRESTORE_BASE}/${collection}`, {
     method: "POST",
     headers,
     body: JSON.stringify({ fields }),
   });
-  if (!res.ok) throw new Error(`POST ${collection}: ${res.status}`);
+  if (!res.ok) throw new Error(`POST ${collection}: ${res.status} ${await res.text().catch(() => "")}`);
   const data = (await res.json()) as { name?: string };
   const name = data.name || "";
   return name.split("/").pop() || "";
@@ -228,11 +244,11 @@ async function fsPost(
 
 async function fsDelete(path: string): Promise<void> {
   const headers = await authHeaders();
-  const res = await fetch(`${FIRESTORE_BASE}/${path}`, {
+  const res = await fetchWithRetry(`${FIRESTORE_BASE}/${path}`, {
     method: "DELETE",
     headers,
   });
-  if (!res.ok) throw new Error(`DELETE ${path}: ${res.status}`);
+  if (!res.ok) throw new Error(`DELETE ${path}: ${res.status} ${await res.text().catch(() => "")}`);
 }
 
 async function fsRunQuery(
@@ -242,12 +258,12 @@ async function fsRunQuery(
 ): Promise<Array<{ name: string; fields: Record<string, unknown> }>> {
   const headers = await authHeaders();
   const structuredQuery = buildStructuredQuery(collection, where, orderBy);
-  const res = await fetch(`${FIRESTORE_BASE}:runQuery`, {
+  const res = await fetchWithRetry(`${FIRESTORE_BASE}:runQuery`, {
     method: "POST",
     headers,
     body: JSON.stringify({ structuredQuery }),
   });
-  if (!res.ok) throw new Error(`runQuery: ${res.status}`);
+  if (!res.ok) throw new Error(`runQuery: ${res.status} ${await res.text().catch(() => "")}`);
   const results = (await res.json()) as Array<{
     document?: {
       name?: string;
@@ -288,12 +304,12 @@ async function fsRunCount(
     },
   };
 
-  const res = await fetch(`${FIRESTORE_BASE}:runAggregationQuery`, {
+  const res = await fetchWithRetry(`${FIRESTORE_BASE}:runAggregationQuery`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`runAggregationQuery: ${res.status}`);
+  if (!res.ok) throw new Error(`runAggregationQuery: ${res.status} ${await res.text().catch(() => "")}`);
 
   const results = (await res.json()) as Array<{
     result?: { aggregateFields?: Record<string, { integerValue?: string }> };
@@ -320,12 +336,10 @@ function toFirestoreFields(
 class DocSnapshot {
   constructor(
     public readonly exists: boolean,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private _data: Record<string, any>,
+    private _data: Record<string, unknown>,
     public readonly ref: DocRef
   ) {}
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data(): Record<string, any> {
+  data(): Record<string, unknown> {
     return this._data;
   }
   get id(): string {
@@ -345,13 +359,13 @@ class DocRef {
     return `${this._collection}/${this._id}`;
   }
   async get(): Promise<DocSnapshot> {
-    const res = await fetch(`${FIRESTORE_BASE}/${this.path}`, {
+    const res = await fetchWithRetry(`${FIRESTORE_BASE}/${this.path}`, {
       headers: await authHeaders(),
     });
     if (res.status === 404) {
       return new DocSnapshot(false, {}, this);
     }
-    if (!res.ok) throw new Error(`GET ${this.path}: ${res.status}`);
+    if (!res.ok) throw new Error(`GET ${this.path}: ${res.status} ${await res.text().catch(() => "")}`);
     const doc = (await res.json()) as {
       fields?: Record<string, Record<string, unknown>>;
     };
@@ -480,7 +494,9 @@ class WriteBatch {
     const BATCH_SIZE = 10;
     for (let i = 0; i < this._ops.length; i += BATCH_SIZE) {
       const chunk = this._ops.slice(i, i + BATCH_SIZE);
-      await Promise.all(chunk.map((op) => op()));
+      for (const op of chunk) {
+        await op();
+      }
     }
   }
 }
@@ -520,7 +536,7 @@ async function getFirebasePublicKeys(): Promise<Record<string, CryptoKey>> {
   if (firebaseKeysPromise) return firebaseKeysPromise;
 
   firebaseKeysPromise = (async () => {
-    const res = await fetch(FIREBASE_KEYS_URL);
+    const res = await fetchWithRetry(FIREBASE_KEYS_URL);
     if (!res.ok) throw new Error(`Failed to fetch Firebase keys: ${res.status}`);
     const data = (await res.json()) as Record<string, string>;
     const keys: Record<string, CryptoKey> = {};
@@ -765,18 +781,5 @@ export function getAdminAuth(): AdminAuth {
   return authInstance;
 }
 
-export const adminDb = new Proxy({} as AdminDb, {
-  get(_, prop) {
-    const db = getAdminDb();
-    const val = (db as unknown as Record<string | symbol, unknown>)[prop];
-    return typeof val === "function" ? val.bind(db) : val;
-  },
-});
-
-export const adminAuth = new Proxy({} as AdminAuth, {
-  get(_, prop) {
-    const auth = getAdminAuth();
-    const val = (auth as unknown as Record<string | symbol, unknown>)[prop];
-    return typeof val === "function" ? val.bind(auth) : val;
-  },
-});
+export const adminDb: AdminDb = firestoreInstance;
+export const adminAuth: AdminAuth = authInstance;

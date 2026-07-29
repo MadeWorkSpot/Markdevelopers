@@ -40,7 +40,7 @@ const mockAboutData = {
 
 describe("AboutPage", () => {
   beforeEach(() => {
-    vi.mocked(readData).mockResolvedValue(mockAboutData as never);
+    vi.mocked(readData<Record<string, unknown>>).mockResolvedValue(mockAboutData as unknown as Record<string, unknown>);
   });
 
   it("renders the hero heading", async () => {

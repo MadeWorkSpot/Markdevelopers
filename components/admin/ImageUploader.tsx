@@ -3,7 +3,19 @@
 import { useRef, useState } from "react";
 import { toast } from "./Toaster";
 
-export default function ImageUploader({ onUpload, onUploadingChange, id = "image-upload" }: { onUpload: (url: string) => void; onUploadingChange?: (uploading: boolean) => void; id?: string }) {
+export default function ImageUploader({
+  onUpload,
+  onUploadingChange,
+  id = "image-upload",
+  accept = "image/*",
+  buttonLabel = "Upload Image",
+}: {
+  onUpload: (url: string) => void;
+  onUploadingChange?: (uploading: boolean) => void;
+  id?: string;
+  accept?: string;
+  buttonLabel?: string;
+}) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +59,7 @@ export default function ImageUploader({ onUpload, onUploadingChange, id = "image
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={accept}
         onChange={handleFile}
         className="hidden"
         id={id}
@@ -57,7 +69,7 @@ export default function ImageUploader({ onUpload, onUploadingChange, id = "image
         htmlFor={id}
         className={`rounded-lg border border-zinc-700 bg-zinc-800/50 px-4 py-2 text-sm text-zinc-300 transition-colors hover:bg-zinc-700/50 ${uploading ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
       >
-        {uploading ? "Uploading..." : "Upload Image"}
+        {uploading ? "Uploading..." : buttonLabel}
       </label>
     </div>
   );

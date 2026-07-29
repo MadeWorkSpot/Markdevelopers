@@ -9,6 +9,8 @@ export default function robots(): MetadataRoute.Robots {
         disallow: "/admin/",
       },
     ],
-    sitemap: "https://markdevelopers.in/sitemap.xml",
+    sitemap: process.env.PUBLIC_HOST
+      ? `https://${process.env.PUBLIC_HOST}/sitemap.xml`
+      : "https://markdevelopers.in/sitemap.xml",
   };
 }

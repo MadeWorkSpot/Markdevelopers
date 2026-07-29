@@ -9,7 +9,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://markdevelopers.in"),
+  metadataBase: new URL(process.env.PUBLIC_HOST ? `https://${process.env.PUBLIC_HOST}` : "https://markdevelopers.in"),
   title: {
     default: "Mark Developers | Premium Construction & Interior Design Services",
     template: "%s | Mark Developers",
@@ -95,7 +95,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://markdevelopers.in",
+    canonical: process.env.PUBLIC_HOST ? `https://${process.env.PUBLIC_HOST}` : "https://markdevelopers.in",
   },
 };
 

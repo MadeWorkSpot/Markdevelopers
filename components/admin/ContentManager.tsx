@@ -9,7 +9,9 @@ import { useConfirm } from "./ConfirmDialog";
 export type Field = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "image" | "url";
+  type: "text" | "textarea" | "image" | "video" | "url" | "select";
+  options?: string[];
+  dependsOn?: { key: string; value: string };
 };
 
 export default function ContentManager({
@@ -43,12 +45,21 @@ export default function ContentManager({
   const resetForm = useCallback(() => {
     const init: Record<string, string> = {};
     fields.forEach((f) => { init[f.key] = ""; });
+    const typeField = fields.find((f) => f.type === "select" && f.options?.length);
+    if (typeField?.options) init[typeField.key] = typeField.options[0];
     setForm(init);
   }, [fields]);
 
   function startEdit(item: Record<string, unknown>, index: number) {
     const init: Record<string, string> = {};
-    fields.forEach((f) => { init[f.key] = String(item[f.key] ?? ""); });
+    fields.forEach((f) => {
+      const val = item[f.key];
+      init[f.key] = val != null ? String(val) : "";
+    });
+    const typeField = fields.find((f) => f.type === "select" && f.options?.length);
+    if (typeField?.options && !init[typeField.key]) {
+      init[typeField.key] = item.videoSrc ? "video" : typeField.options[0];
+    }
     setForm(init);
     setEditingIndex(index);
     setAdding(false);
@@ -65,11 +76,30 @@ export default function ContentManager({
     setAdding(false);
   }
 
+  function isValidUrl(value: string): boolean {
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
+  function visibleFields() {
+    return fields.filter((f) => !f.dependsOn || form[f.dependsOn.key] === f.dependsOn.value);
+  }
+
   async function handleSave() {
-    const requiredFields = fields.filter((f) => f.type === "text" || f.type === "textarea");
+    const requiredFields = visibleFields().filter((f) => f.type === "text" || f.type === "textarea" || f.type === "url" || f.type === "image" || f.type === "video");
     const emptyField = requiredFields.find((f) => !(form[f.key] ?? "").trim());
     if (emptyField) {
       toast.error(`${emptyField.label} is required`);
+      return;
+    }
+    const urlFields = visibleFields().filter((f) => f.type === "url" || f.type === "image" || f.type === "video");
+    const invalidUrl = urlFields.find((f) => (form[f.key] ?? "").trim() && !isValidUrl(form[f.key]));
+    if (invalidUrl) {
+      toast.error(`${invalidUrl.label} must be a valid http or https URL`);
       return;
     }
     setSaving(true);
@@ -168,12 +198,39 @@ export default function ContentManager({
             {adding ? "Add New" : "Edit"}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            {fields.map((field) => (
-              <div key={field.key} className={field.type === "textarea" || field.type === "image" ? "sm:col-span-2" : ""}>
+            {visibleFields().map((field) => (
+              <div key={field.key} className={field.type === "textarea" || field.type === "image" || field.type === "video" || field.type === "select" ? "sm:col-span-2" : ""}>
                 <label className="mb-1 block text-xs font-medium text-zinc-500">
                   {field.label}
                 </label>
-                {field.type === "textarea" ? (
+                {field.type === "select" && field.options ? (
+                  <div className="flex gap-2">
+                    {field.options.map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setForm((p) => {
+                            const next = { ...p, [field.key]: opt };
+                            fields.forEach((f) => {
+                              if (f.dependsOn && f.dependsOn.key === field.key && f.dependsOn.value !== opt) {
+                                next[f.key] = "";
+                              }
+                            });
+                            return next;
+                          });
+                        }}
+                        className={`flex-1 rounded-lg border px-4 py-2 text-sm transition-colors ${
+                          form[field.key] === opt
+                            ? "border-white bg-white text-black"
+                            : "border-zinc-700 text-zinc-400 hover:bg-zinc-800"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                ) : field.type === "textarea" ? (
                   <textarea
                     value={form[field.key] ?? ""}
                     onChange={(e) => setForm((p) => ({ ...p, [field.key]: e.target.value }))}
@@ -197,6 +254,28 @@ export default function ContentManager({
                         src={form[field.key]}
                         alt="Preview"
                         className="mt-2 h-24 w-40 rounded-lg object-cover max-w-full"
+                      />
+                    )}
+                  </div>
+                ) : field.type === "video" ? (
+                  <div className="space-y-2">
+                    <input
+                      value={form[field.key] ?? ""}
+                      onChange={(e) => setForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                      placeholder="Video URL"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-zinc-500"
+                    />
+                    <ImageUploader
+                      accept="video/*"
+                      buttonLabel="Upload Video"
+                      onUpload={(url) => handleImageUpload(url, field.key)}
+                      onUploadingChange={(u) => setUploadingCount((c) => c + (u ? 1 : -1))}
+                    />
+                    {form[field.key] && (
+                      <video
+                        src={form[field.key]}
+                        className="mt-2 h-24 w-40 rounded-lg object-cover max-w-full"
+                        controls
                       />
                     )}
                   </div>
@@ -230,14 +309,13 @@ export default function ContentManager({
 
       <div className="space-y-3">
         {items.map((item, i) => {
-          const imageField = fields.find((f) => f.type === "image");
-          const imageUrl = imageField ? String(item[imageField.key] ?? "") : null;
-          const previewField = fields.find((f) => f.type !== "image");
-          const preview = previewField ? String(item[previewField.key] ?? "") : `Item ${i + 1}`;
+          const record = item as Record<string, string | undefined>;
+          const imageUrl = record.src || null;
+          const videoUrl = record.videoSrc || null;
+          const preview = `Item ${i + 1}`;
 
           return (
-            <div
-              key={`${previewField ? String(item[previewField.key] ?? "") : ""}-${i}`}
+            <div key={i}
               draggable={!!onReorder}
               onDragStart={(e) => handleDragStart(e, i)}
               onDragEnter={(e) => handleDragEnter(e, i)}
@@ -260,13 +338,18 @@ export default function ContentManager({
                   </svg>
                 </div>
               )}
-              {imageUrl && (
+              {videoUrl ? (
+                <video
+                  src={videoUrl}
+                  className="h-14 w-20 flex-shrink-0 rounded-lg object-cover max-w-full"
+                />
+              ) : imageUrl ? (
                 <img
                   src={imageUrl}
                   alt=""
                   className="h-14 w-20 flex-shrink-0 rounded-lg object-cover max-w-full"
                 />
-              )}
+              ) : null}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-white">{preview}</p>
               </div>

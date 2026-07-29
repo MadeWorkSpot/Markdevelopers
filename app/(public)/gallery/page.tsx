@@ -7,7 +7,7 @@ type GalleryData = {
   pageLabel: string;
   pageHeading: string;
   pageSubtitle: string;
-  images: { src: string; alt: string }[];
+  images: { src: string; alt: string; videoSrc?: string }[];
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: "Gallery | Mark Developers",
       description,
-      url: "https://markdevelopers.in/gallery",
+      url: process.env.PUBLIC_HOST ? `https://${process.env.PUBLIC_HOST}/gallery` : "https://markdevelopers.in/gallery",
       siteName: "Mark Developers",
       type: "website",
       locale: "en_IN",
@@ -53,7 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ...(data.images?.[0]?.src && { images: [data.images[0].src] }),
     },
     alternates: {
-      canonical: "https://markdevelopers.in/gallery",
+      canonical: process.env.PUBLIC_HOST ? `https://${process.env.PUBLIC_HOST}/gallery` : "https://markdevelopers.in/gallery",
     },
   };
 }
@@ -72,16 +72,22 @@ export default async function GalleryPage() {
           {firstWords} {" "}
           <span className="font-medium">{lastWord}</span>
         </h1>
-        <p className="mt-4 mt-6 max-w-3xl text-md md:text-lg lg:text-xl leading-snug text-white/60">
+        <p className="mt-6 max-w-3xl text-md md:text-lg lg:text-xl leading-snug text-white/60">
           {data.pageSubtitle ?? ""}
         </p>
         <div className="mt-4 md:mt-8 columns-1 gap-6 sm:columns-2 lg:columns-3">
-          {(data.images ?? []).map((img, i) => (
+          {(data.images ?? []).map((item, i) => (
             <div key={i} className="group mb-6 break-inside-avoid overflow-hidden">
-              {img.src && (
+              {item.videoSrc ? (
+                <video
+                  src={item.videoSrc}
+                  controls
+                  className="w-full object-cover"
+                />
+              ) : item.src && (
                 <img
-                  src={img.src}
-                  alt={img.alt}
+                  src={item.src}
+                  alt={item.alt}
                   loading="lazy"
                   className="w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                 />

@@ -8,7 +8,7 @@ export const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 export const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure: process.env.NODE_ENV === "production" && !process.env.PUBLIC_HOST_DEV,
   sameSite: "strict" as const,
   path: "/",
 } as const;

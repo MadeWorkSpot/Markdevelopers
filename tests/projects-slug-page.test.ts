@@ -28,7 +28,7 @@ const mockProjectsData = {
 
 describe("ProjectDetailPage", () => {
   beforeEach(() => {
-    vi.mocked(readData).mockResolvedValue(mockProjectsData as never);
+    vi.mocked(readData<Record<string, unknown>>).mockResolvedValue(mockProjectsData as unknown as Record<string, unknown>);
   });
 
   it("renders the project title in hero", async () => {

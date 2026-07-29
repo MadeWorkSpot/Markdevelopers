@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
-import { middleware } from "@/middleware";
+import { proxy as middleware } from "@/proxy";
 
 function createRequest(
   url: string,
@@ -21,6 +21,7 @@ function createRequest(
 describe("middleware", () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
+    vi.stubEnv("ADMIN_HOST_PREFIX", "admin.");
   });
 
   describe("public site (non-admin host)", () => {

@@ -75,7 +75,12 @@ async function kvCheck(
   maxAttempts = MAX_ATTEMPTS
 ): Promise<{ allowed: boolean; retryAfterMs?: number }> {
   const kv = getKv();
-  if (!kv) return memoryCheck(key, maxAttempts);
+  if (!kv) {
+    if (process.env.NODE_ENV === "production") {
+      return { allowed: false, retryAfterMs: 60_000 };
+    }
+    return memoryCheck(key, maxAttempts);
+  }
 
   const effectiveKey = ip ? `${key}:ip:${ip}` : key;
   const now = Date.now();

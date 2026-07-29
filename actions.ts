@@ -90,7 +90,7 @@ export async function login(_prev: unknown, formData: FormData) {
   const cookieStore = await cookies();
   cookieStore.set("session", sessionCookie, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && !process.env.PUBLIC_HOST_DEV,
     sameSite: "strict",
     path: "/",
     maxAge: 60 * 60 * 24,
@@ -98,7 +98,7 @@ export async function login(_prev: unknown, formData: FormData) {
   if (refreshToken) {
     cookieStore.set("refresh_token", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" && !process.env.PUBLIC_HOST_DEV,
       sameSite: "strict",
       path: "/",
       maxAge: 60 * 60 * 24 * 30,
@@ -165,9 +165,26 @@ export async function submitContact(_prev: unknown, formData: FormData) {
     if (!docRef.id) {
       return { error: "Message could not be saved. Please try again." };
     }
+
+    const contactDoc = await db.collection("content").doc("contact").get();
+    const contactData = contactDoc.data();
+    const toEmail = (contactData?.email as string) || "info@markdevelopers.in";
+
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Mark Developers <noreply@markdevelopers.in>",
+        to: toEmail,
+        subject: `New Contact Form Message from ${name}`,
+        html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong></p><p>${message}</p>`,
+      }),
+    });
     return { success: true };
-  } catch (err) {
-    console.error("[submitContact] Error:", err);
+  } catch {
     return { error: "Failed to send message. Please try again." };
   }
 }
@@ -233,6 +250,9 @@ export async function addArrayItem(
   if (!VALID_CONTENT_TYPES.includes(type)) {
     return { success: false, error: "Invalid content type" };
   }
+  if (JSON.stringify(item).length > 1_048_576) {
+    return { success: false, error: "Item too large. Maximum size is 1 MB." };
+  }
   const data = await readData<Record<string, unknown>>(type);
   const arr = (data[key] as unknown[]) ?? [];
   (data as Record<string, unknown>)[key] = [...arr, item];
@@ -251,12 +271,15 @@ export async function updateArrayItem(
   if (!VALID_CONTENT_TYPES.includes(type)) {
     return { success: false, error: "Invalid content type" };
   }
+  if (JSON.stringify(item).length > 1_048_576) {
+    return { success: false, error: "Item too large. Maximum size is 1 MB." };
+  }
   const data = await readData<Record<string, unknown[]>>(type);
   const arr = data[key] ?? [];
   if (index < 0 || index >= arr.length) {
     return { success: false, error: "Index out of bounds" };
   }
-  arr[index] = item as never;
+  arr[index] = item;
   data[key] = arr;
   await writeData(type, data);
   revalidatePath("/", "layout");

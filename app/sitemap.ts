@@ -2,7 +2,9 @@ import type { MetadataRoute } from "next";
 import { readData } from "@/lib/data";
 import { slugify } from "@/lib/slugify";
 
-const BASE_URL = "https://markdevelopers.in";
+const BASE_URL = process.env.PUBLIC_HOST
+  ? `https://${process.env.PUBLIC_HOST}`
+  : "https://markdevelopers.in";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [

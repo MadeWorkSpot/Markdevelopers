@@ -28,7 +28,6 @@ export async function verifyTurnstile(token: string | null): Promise<TurnstileRe
   // This allows local development without requiring a Turnstile secret.
   // In production, TURNSTILE_SECRET_KEY MUST be set.
   if (!TURNSTILE_SECRET_KEY) {
-    console.warn("TURNSTILE_SECRET_KEY is not set — skipping Turnstile verification.");
     return { success: true };
   }
 
@@ -55,8 +54,7 @@ export async function verifyTurnstile(token: string | null): Promise<TurnstileRe
       success: data.success,
       errorCodes: data["error-codes"],
     };
-  } catch (err) {
-    console.error("Turnstile verification failed:", err);
+  } catch {
     return { success: false, errorCodes: ["verification-request-failed"] };
   }
 }

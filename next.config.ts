@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+if (process.env.NODE_ENV === "production" && !process.env.PUBLIC_HOST) {
+  throw new Error("PUBLIC_HOST environment variable is required in production");
+}
+
 /**
  * SECURITY HARDENED — Next.js Configuration
  *
@@ -99,6 +103,9 @@ const nextConfig: NextConfig = {
 
               // Styles: same-origin + inline (required by Tailwind + Next.js CSS injection).
               "style-src 'self' 'unsafe-inline'",
+
+              // Media (video/audio): same-origin, Cloudinary (video hosting).
+              "media-src 'self' https:",
 
               // Images: same-origin, Cloudinary (image hosting), data: URIs (Next.js inline SVGs),
               // blob: (client-side image creation), https: (broad fallback for og:image etc.).

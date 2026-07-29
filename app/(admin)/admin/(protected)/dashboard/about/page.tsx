@@ -2,7 +2,6 @@ import AboutEditor from "@/components/admin/AboutEditor";
 import { readData } from "@/lib/data";
 
 export default async function AboutPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await readData<any>("about");
-  return <AboutEditor key={JSON.stringify(data)} data={data} />;
+  const data = await readData<Record<string, unknown>>("about");
+  return <AboutEditor key={JSON.stringify(data)} data={data as never} />;
 }
