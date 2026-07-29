@@ -26,6 +26,10 @@
 			"remote": true
 		}
 	],
+	"vars": {
+		"CLOUDINARY_CLOUD_NAME": "dtr9ws0x",
+		"CLOUDINARY_API_KEY": "161842465146681"
+	},
 	"images": {
 		"binding": "IMAGES"
 	},
