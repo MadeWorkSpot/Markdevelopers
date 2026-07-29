@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   // Use only the Host header for security decisions — x-forwarded-host can be
   // spoofed by clients and must not be trusted for access control or redirects.
@@ -45,4 +45,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"],
+  runtime: "experimental-edge",
 };
