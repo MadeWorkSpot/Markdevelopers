@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useId, useEffect } from "react";
+import { memo,   useRef, useCallback, useEffect } from "react";
 
 const TURNSTILE_SCRIPT_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js";
 
@@ -64,7 +64,7 @@ function loadTurnstileScript(): Promise<void> {
 
 const MAX_RETRIES = 3;
 
-export default function TurnstileWidget({
+const TurnstileWidget = memo(function TurnstileWidget({
   siteKey,
   onTokenChange,
 }: {
@@ -74,7 +74,6 @@ export default function TurnstileWidget({
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string>("");
   const retriesRef = useRef(0);
-  const id = useId();
 
   const handleToken = useCallback(
     (token: string) => {
@@ -141,16 +140,16 @@ export default function TurnstileWidget({
   }, [siteKey, handleToken, handleError, handleExpired]);
 
   return (
-    <div id={`turnstile-${id}`} ref={containerRef} className="cf-turnstile" />
+    <div ref={containerRef} data-turnstile />
   );
-}
+});
 
 function rebuildWidget(
   siteKey: string,
   onTokenChange: (token: string) => void,
   widgetIdRef: React.MutableRefObject<string>
 ) {
-  const container = document.querySelector<HTMLElement>(".cf-turnstile");
+  const container = document.querySelector<HTMLElement>("[data-turnstile]");
   if (!container || !window.turnstile) return;
 
   try {
@@ -174,3 +173,5 @@ function rebuildWidget(
     size: "normal",
   });
 }
+
+export default TurnstileWidget;
