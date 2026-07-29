@@ -59,12 +59,17 @@ function memoryCheck(key: string, maxAttempts = MAX_ATTEMPTS): { allowed: boolea
 
 function getKv(): CloudflareKV | null {
   // In Cloudflare Workers with OpenNext, KV bindings are injected into the
-  // global scope. process.env may hold the binding directly, or it may be
-  // accessible via globalThis. We try multiple paths for compatibility.
-  const env = globalThis as Record<string, unknown>;
-  const kv = env["RATE_LIMIT_KV"] ?? env["__RATE_LIMIT_KV"];
-  if (kv && typeof kv === "object" && typeof (kv as CloudflareKV).get === "function") {
-    return kv as CloudflareKV;
+  // global scope, but may also be available via process.env or globalThis.
+  // We try multiple paths for compatibility.
+  const candidates = [
+    (globalThis as Record<string, unknown>)["RATE_LIMIT_KV"],
+    (globalThis as Record<string, unknown>)["__RATE_LIMIT_KV"],
+    (process.env as Record<string, unknown>)["RATE_LIMIT_KV"],
+  ] as const;
+  for (const kv of candidates) {
+    if (kv && typeof kv === "object" && typeof (kv as CloudflareKV).get === "function") {
+      return kv as CloudflareKV;
+    }
   }
   return null;
 }
@@ -76,9 +81,6 @@ async function kvCheck(
 ): Promise<{ allowed: boolean; retryAfterMs?: number }> {
   const kv = getKv();
   if (!kv) {
-    if (process.env.NODE_ENV === "production") {
-      return { allowed: false, retryAfterMs: 60_000 };
-    }
     return memoryCheck(key, maxAttempts);
   }
 
