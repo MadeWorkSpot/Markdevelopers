@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
-import { proxy as middleware } from "@/proxy";
+import { middleware } from "@/middleware";
 
 function createRequest(
   url: string,
