@@ -49,6 +49,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Prepare env
+        run: cp .env.ci .env
       - name: Build & Deploy main worker
         run: npm run deploy
         env:
@@ -71,16 +73,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           PUBLIC_HOST: ${{ secrets.PUBLIC_HOST }}
           ADMIN_HOST_PREFIX: ${{ secrets.ADMIN_HOST_PREFIX }}
-          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
       - name: Set secrets on main worker
         run: |
+          echo "${{ secrets.PUBLIC_HOST }}" | npx wrangler secret put PUBLIC_HOST
+          echo "${{ secrets.ADMIN_HOST_PREFIX }}" | npx wrangler secret put ADMIN_HOST_PREFIX
           echo "${{ secrets.TURNSTILE_SECRET_KEY }}" | npx wrangler secret put TURNSTILE_SECRET_KEY
           echo "${{ secrets.FIREBASE_CLIENT_EMAIL }}" | npx wrangler secret put FIREBASE_CLIENT_EMAIL
           echo "${{ secrets.FIREBASE_PRIVATE_KEY }}" | npx wrangler secret put FIREBASE_PRIVATE_KEY
@@ -92,6 +88,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Set secrets on admin worker
         run: |
+          echo "${{ secrets.PUBLIC_HOST }}" | npx wrangler --config wrangler.admin.jsonc secret put PUBLIC_HOST
+          echo "${{ secrets.ADMIN_HOST_PREFIX }}" | npx wrangler --config wrangler.admin.jsonc secret put ADMIN_HOST_PREFIX
           echo "${{ secrets.TURNSTILE_SECRET_KEY }}" | npx wrangler --config wrangler.admin.jsonc secret put TURNSTILE_SECRET_KEY
           echo "${{ secrets.FIREBASE_CLIENT_EMAIL }}" | npx wrangler --config wrangler.admin.jsonc secret put FIREBASE_CLIENT_EMAIL
           echo "${{ secrets.FIREBASE_PRIVATE_KEY }}" | npx wrangler --config wrangler.admin.jsonc secret put FIREBASE_PRIVATE_KEY
