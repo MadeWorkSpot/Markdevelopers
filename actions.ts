@@ -7,6 +7,7 @@ import { readData, writeData } from "@/lib/data";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { clearAuthCookies } from "@/lib/auth";
+import { deleteCloudinaryResource } from "@/lib/cloudinary";
 
 const VALID_CONTENT_TYPES = [
   "carousel", "services", "projects", "gallery",
@@ -296,7 +297,13 @@ export async function deleteArrayItem(
     return { success: false, error: "Invalid content type" };
   }
   const data = await readData<Record<string, unknown[]>>(type);
-  data[key] = (data[key] ?? []).filter((_, i) => i !== index);
+  const items = data[key] ?? [];
+  const item = items[index] as Record<string, unknown> | undefined;
+  if (item) {
+    const urls = [item.src, item.videoSrc].filter(Boolean) as string[];
+    await Promise.allSettled(urls.map(deleteCloudinaryResource));
+  }
+  data[key] = items.filter((_, i) => i !== index);
   await writeData(type, data);
   revalidatePath("/", "layout");
   return { success: true };
