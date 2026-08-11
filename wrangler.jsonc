@@ -61,6 +61,7 @@
 			"vars": {
 				"PUBLIC_HOST": "dev.markdevelopers.in",
 				"ADMIN_HOST_PREFIX": "admin-dev.",
+				"ADMIN_HOST": "admin-dev.markdevelopers.in",
 				"ENVIRONMENT": "staging",
 				"CLOUDINARY_CLOUD_NAME": "dtr9ws0x",
 				"CLOUDINARY_API_KEY": "161842465146681"

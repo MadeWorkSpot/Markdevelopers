@@ -173,6 +173,44 @@ describe("middleware", () => {
     });
   });
 
+  describe("staging admin host (explicit ADMIN_HOST)", () => {
+    beforeEach(() => {
+      vi.stubEnv("PUBLIC_HOST", "dev.markdevelopers.in");
+      vi.stubEnv("ADMIN_HOST_PREFIX", "admin-dev.");
+      vi.stubEnv("ADMIN_HOST", "admin-dev.markdevelopers.in");
+    });
+
+    it("recognizes admin-dev.markdevelopers.in as the admin host", () => {
+      const req = createRequest(
+        "http://admin-dev.markdevelopers.in/admin/login",
+        "admin-dev.markdevelopers.in"
+      );
+      const res = middleware(req);
+      expect(res.status).toBe(200);
+    });
+
+    it("redirects non-admin paths to /admin/dashboard on the admin host", () => {
+      const req = createRequest(
+        "http://admin-dev.markdevelopers.in/",
+        "admin-dev.markdevelopers.in"
+      );
+      const res = middleware(req);
+      expect(res.status).toBe(307);
+      const location = res.headers.get("location");
+      expect(location).toContain("/admin/dashboard");
+    });
+
+    it("does not treat admin-dev.dev.markdevelopers.in as the admin host", () => {
+      const req = createRequest(
+        "http://admin-dev.dev.markdevelopers.in/admin/login",
+        "admin-dev.dev.markdevelopers.in"
+      );
+      const res = middleware(req);
+      const rewrittenUrl = res.headers.get("x-middleware-rewrite");
+      expect(rewrittenUrl).toContain("/_not-found");
+    });
+  });
+
   describe("host parsing", () => {
     it("strips port from host header", () => {
       const req = createRequest(

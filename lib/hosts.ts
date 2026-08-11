@@ -15,8 +15,12 @@ export function normalizeHost(host: string): string {
 export function getAdminHost(
   env: Record<string, string | undefined> = process.env
 ): string {
+  // Explicit full hostname override (e.g. `admin-dev.markdevelopers.in`).
+  // Required when the admin host is not a subdomain of PUBLIC_HOST.
+  const explicit = normalizeHost(env.ADMIN_HOST || "");
+  if (explicit) return explicit;
   const base = normalizeHost(env.PUBLIC_HOST || "");
-  const prefix = (env.ADMIN_HOST_PREFIX || "admindashboard.")
+  const prefix = (env.ADMIN_HOST_PREFIX || "")
     .replace(/\.+$/, "")
     .concat(".");
   return base ? normalizeHost(prefix + base) : "";

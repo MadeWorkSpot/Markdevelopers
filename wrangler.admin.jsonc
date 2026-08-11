@@ -56,6 +56,7 @@
       "vars": {
         "PUBLIC_HOST": "dev.markdevelopers.in",
         "ADMIN_HOST_PREFIX": "admin-dev.",
+        "ADMIN_HOST": "admin-dev.markdevelopers.in",
         "ENVIRONMENT": "staging"
       },
       "images": {

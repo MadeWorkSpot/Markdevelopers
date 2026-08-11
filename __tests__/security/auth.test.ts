@@ -53,6 +53,24 @@ describe("isAdminHost", () => {
   it("rejects empty hosts", () => {
     expect(isAdminHost("", env)).toBe(false);
   });
+
+  it("prefers an explicit ADMIN_HOST override", () => {
+    expect(
+      isAdminHost("admin-dev.example.com", {
+        ...env,
+        ADMIN_HOST: "admin-dev.example.com",
+      })
+    ).toBe(true);
+  });
+
+  it("rejects hosts that are not the explicit ADMIN_HOST", () => {
+    expect(
+      isAdminHost("admin-dev.dev.example.com", {
+        ...env,
+        ADMIN_HOST: "admin-dev.example.com",
+      })
+    ).toBe(false);
+  });
 });
 
 describe("shouldUseSecureCookies", () => {
