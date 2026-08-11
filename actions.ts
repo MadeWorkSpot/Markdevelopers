@@ -4,10 +4,33 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { readData, writeData } from "@/lib/data";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { adminAuth, adminDb, type DecodedSession } from "@/lib/firebase-admin";
 import { checkRateLimit, getClientIpFromHeaders } from "@/lib/rate-limit";
 import { clearAuthCookies, getCookieOptions, assertAdminEmail, isAdminEmail } from "@/lib/auth";
 import { deleteCloudinaryResource } from "@/lib/cloudinary";
+import { sendEmail, sendResetOtpEmail } from "@/lib/resend";
+import {
+  PASSWORD_RESET_REQUEST_COOKIE,
+  PASSWORD_RESET_TOKEN_COOKIE,
+  PASSWORD_RESET_TTL_MS,
+  OTP_MAX_ATTEMPTS,
+  OTP_MAX_RESENDS,
+  GENERIC_RESET_MESSAGE,
+  isValidEmail,
+  isOtpFormat,
+  passwordValidationError,
+  generateOtp,
+  generateResetToken,
+  hashOtp,
+  verifyOtpHash,
+  sha256Hex,
+  constantTimeEqual,
+  randomBytesHex,
+  saveResetRecord,
+  getResetRecord,
+  deleteResetRecord,
+  type ResetRecord,
+} from "@/lib/password-reset";
 
 const VALID_CONTENT_TYPES = [
   "carousel", "services", "projects", "gallery",
@@ -30,7 +53,7 @@ async function withContentLock<T>(type: string, fn: () => Promise<T>): Promise<T
   return safe;
 }
 
-async function requireAdmin() {
+async function requireAdminSession(): Promise<DecodedSession> {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session")?.value;
   if (!sessionCookie) throw new Error("Unauthorized");
@@ -44,9 +67,14 @@ async function requireAdmin() {
     // explicitly listed in ALLOWED_ADMIN_EMAILS. If unconfigured, no account
     // is permitted (deny-by-default).
     assertAdminEmail(session.email);
+    return session;
   } catch {
     throw new Error("Unauthorized");
   }
+}
+
+async function requireAdmin() {
+  await requireAdminSession();
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -129,6 +157,315 @@ export async function logout() {
   redirect("/admin/login");
 }
 
+// ─── Forgot password / OTP reset ─────────────────────────────────────────────
+
+const RESET_DELAY_MS = 300;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function requestPasswordReset(_prev: unknown, formData: FormData) {
+  const rawEmail = formData.get("email");
+  const email =
+    typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+
+  if (!isValidEmail(email)) {
+    return { error: "Please enter a valid email address." };
+  }
+
+  const ip = await getClientIpFromHeaders();
+  const emailHash = await sha256Hex(email);
+  // 3 requests per email / 15 min and 10 per IP / 15 min.
+  const rlEmail = await checkRateLimit(`pr-email:${emailHash}`, undefined, 3);
+  const rlIp = await checkRateLimit("pr-ip", ip, 10);
+  if (!rlEmail.allowed || !rlIp.allowed) {
+    return { error: "Too many requests. Try again later." };
+  }
+
+  // Non-eligible paths take a fixed delay to mask timing differences with the
+  // email-send path (response timing must not leak account existence).
+  if (!isAdminEmail(email)) {
+    await delay(RESET_DELAY_MS);
+    return { success: true, message: GENERIC_RESET_MESSAGE };
+  }
+
+  let uid: string;
+  try {
+    const user = await adminAuth.getUserByEmail(email);
+    uid = user.uid;
+  } catch {
+    await delay(RESET_DELAY_MS);
+    return { success: true, message: GENERIC_RESET_MESSAGE };
+  }
+
+  const otp = generateOtp();
+  const { salt, hash } = await hashOtp(otp);
+  const requestId = randomBytesHex(16);
+  const record: ResetRecord = {
+    emailHash,
+    email,
+    uid,
+    otpSalt: salt,
+    otpHash: hash,
+    expiresAt: Date.now() + PASSWORD_RESET_TTL_MS,
+    attempts: 0,
+    resendCount: 0,
+    createdAt: Date.now(),
+  };
+  await saveResetRecord(requestId, record);
+
+  try {
+    await sendResetOtpEmail(email, otp);
+  } catch {
+    // Delivery failure must not leak account existence. Drop the orphaned
+    // record so a stale OTP is never accepted.
+    await deleteResetRecord(requestId);
+    return { success: true, message: GENERIC_RESET_MESSAGE };
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(PASSWORD_RESET_REQUEST_COOKIE, requestId, {
+    ...getCookieOptions(),
+    maxAge: PASSWORD_RESET_TTL_MS / 1000,
+    path: "/admin/forgot",
+  });
+
+  return { success: true, message: GENERIC_RESET_MESSAGE };
+}
+
+export async function resendOtp() {
+  const ip = await getClientIpFromHeaders();
+  const rl = await checkRateLimit("pr-resend-ip", ip, 10);
+  if (!rl.allowed) {
+    return { error: "Too many requests. Try again later." };
+  }
+
+  const cookieStore = await cookies();
+  const requestId = cookieStore.get(PASSWORD_RESET_REQUEST_COOKIE)?.value;
+  if (!requestId) {
+    return { error: "Invalid or expired verification code." };
+  }
+
+  const record = await getResetRecord(requestId);
+  if (!record || record.verifiedAt || !record.otpHash) {
+    return { error: "Invalid or expired verification code." };
+  }
+  if (record.resendCount >= OTP_MAX_RESENDS) {
+    return { error: "Too many requests. Try again later." };
+  }
+
+  const otp = generateOtp();
+  const { salt, hash } = await hashOtp(otp);
+  await saveResetRecord(requestId, {
+    ...record,
+    otpSalt: salt,
+    otpHash: hash,
+    attempts: 0,
+    resendCount: record.resendCount + 1,
+  });
+
+  try {
+    await sendResetOtpEmail(record.email, otp);
+  } catch {
+    return { error: "Failed to send a new code. Please try again." };
+  }
+
+  return { success: true };
+}
+
+export async function verifyOtp(_prev: unknown, formData: FormData) {
+  const rawOtp = formData.get("otp");
+  const otp = typeof rawOtp === "string" ? rawOtp : "";
+  if (!isOtpFormat(otp)) {
+    return { error: "Invalid or expired verification code." };
+  }
+
+  const ip = await getClientIpFromHeaders();
+  const rl = await checkRateLimit("pr-verify-ip", ip, 20);
+  if (!rl.allowed) {
+    return { error: "Invalid or expired verification code." };
+  }
+
+  const cookieStore = await cookies();
+  const requestId = cookieStore.get(PASSWORD_RESET_REQUEST_COOKIE)?.value;
+  if (!requestId) {
+    return { error: "Invalid or expired verification code." };
+  }
+
+  const record = await getResetRecord(requestId);
+  if (!record) {
+    return { error: "Invalid or expired verification code." };
+  }
+  if (record.verifiedAt || !record.otpHash) {
+    return { error: "Invalid or expired verification code." };
+  }
+  if (record.attempts >= OTP_MAX_ATTEMPTS) {
+    await deleteResetRecord(requestId);
+    return { error: "Invalid or expired verification code." };
+  }
+
+  const ok = await verifyOtpHash(otp, record.otpSalt, record.otpHash);
+  if (!ok) {
+    const attempts = record.attempts + 1;
+    if (attempts >= OTP_MAX_ATTEMPTS) {
+      // Brute-force threshold reached — invalidate the request entirely.
+      await deleteResetRecord(requestId);
+    } else {
+      await saveResetRecord(requestId, { ...record, attempts });
+    }
+    return { error: "Invalid or expired verification code." };
+  }
+
+  // Single-use OTP: consume it, mark the request verified, and mint the
+  // short-lived reset authorization token (only its hash is stored).
+  const token = generateResetToken();
+  const tokenHash = await sha256Hex(token);
+  await saveResetRecord(requestId, {
+    ...record,
+    verifiedAt: Date.now(),
+    otpHash: "",
+    resetTokenHash: tokenHash,
+  });
+
+  cookieStore.set(PASSWORD_RESET_TOKEN_COOKIE, token, {
+    ...getCookieOptions(),
+    maxAge: PASSWORD_RESET_TTL_MS / 1000,
+    path: "/admin/forgot/reset",
+  });
+
+  return { success: true };
+}
+
+export async function resetPassword(_prev: unknown, formData: FormData) {
+  const newPassword =
+    typeof formData.get("password") === "string"
+      ? (formData.get("password") as string)
+      : "";
+  const confirmPassword = formData.get("confirmPassword");
+
+  const passwordError = passwordValidationError(newPassword);
+  if (passwordError) {
+    return { error: passwordError };
+  }
+  if (typeof confirmPassword !== "string" || confirmPassword !== newPassword) {
+    return { error: "Passwords do not match." };
+  }
+
+  const ip = await getClientIpFromHeaders();
+  const rl = await checkRateLimit("pr-reset-ip", ip, 10);
+  if (!rl.allowed) {
+    return { error: "Too many requests. Try again later." };
+  }
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get(PASSWORD_RESET_TOKEN_COOKIE)?.value;
+  const requestId = cookieStore.get(PASSWORD_RESET_REQUEST_COOKIE)?.value;
+  if (!token || !requestId) {
+    return { error: "Invalid or expired reset session." };
+  }
+
+  const record = await getResetRecord(requestId);
+  if (!record || !record.verifiedAt || !record.resetTokenHash) {
+    return { error: "Invalid or expired reset session." };
+  }
+
+  const tokenHash = await sha256Hex(token);
+  if (!constantTimeEqual(tokenHash, record.resetTokenHash)) {
+    return { error: "Invalid or expired reset session." };
+  }
+
+  try {
+    await adminAuth.updateUser(record.uid, { password: newPassword });
+    // Revoke every issued token so no previous session survives the reset.
+    await adminAuth.revokeRefreshTokens(record.uid);
+  } catch {
+    return { error: "Something went wrong. Please try again." };
+  }
+
+  // Single-use reset authorization: destroy the record and its cookies. The
+  // admin must log in normally with the new password.
+  await deleteResetRecord(requestId);
+  cookieStore.delete(PASSWORD_RESET_TOKEN_COOKIE);
+  cookieStore.delete(PASSWORD_RESET_REQUEST_COOKIE);
+
+  return { success: true };
+}
+
+// ─── Change password (logged-in admin) ───────────────────────────────────────
+
+export async function changePassword(_prev: unknown, formData: FormData) {
+  let session: DecodedSession;
+  try {
+    session = await requireAdminSession();
+  } catch {
+    return { error: "Unauthorized." };
+  }
+
+  const currentPassword = formData.get("currentPassword");
+  const newPassword =
+    typeof formData.get("newPassword") === "string"
+      ? (formData.get("newPassword") as string)
+      : "";
+  const confirmPassword = formData.get("confirmPassword");
+
+  if (typeof currentPassword !== "string" || !currentPassword) {
+    return { error: "Current password is required." };
+  }
+  const passwordError = passwordValidationError(newPassword);
+  if (passwordError) {
+    return { error: passwordError };
+  }
+  if (typeof confirmPassword !== "string" || confirmPassword !== newPassword) {
+    return { error: "Passwords do not match." };
+  }
+
+  const ip = await getClientIpFromHeaders();
+  const rlUser = await checkRateLimit(`pr-change:${session.sub}`, undefined, 5);
+  const rlIp = await checkRateLimit("pr-change-ip", ip, 10);
+  if (!rlUser.allowed || !rlIp.allowed) {
+    return { error: "Too many attempts. Try again later." };
+  }
+
+  // Verify the current password against Firebase before changing anything.
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  if (!apiKey) {
+    return { error: "Configuration error. Please try again later." };
+  }
+  try {
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: session.email,
+          password: currentPassword,
+          returnSecureToken: true,
+        }),
+      }
+    );
+    if (!res.ok) {
+      return { error: "Current password is incorrect." };
+    }
+  } catch {
+    return { error: "Current password is incorrect." };
+  }
+
+  try {
+    const uid = session.sub as string;
+    await adminAuth.updateUser(uid, { password: newPassword });
+    await adminAuth.revokeRefreshTokens(uid);
+  } catch {
+    return { error: "Something went wrong. Please try again." };
+  }
+
+  // Sessions are invalidated server-side (token revocation); clear the cookies
+  // and require the admin to log in again.
+  await clearAuthCookies();
+  return { success: true };
+}
+
 // ─── Content CRUD ────────────────────────────────────────────────────────────
 
 export async function submitContact(_prev: unknown, formData: FormData) {
@@ -177,18 +514,10 @@ export async function submitContact(_prev: unknown, formData: FormData) {
 
     // User content is escaped before being interpolated into the HTML email so
     // a visitor cannot inject markup/phishing content into the admin's inbox.
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Mark Developers <noreply@markdevelopers.in>",
-        to: toEmail,
-        subject: `New Contact Form Message from ${escapeHtml(name)}`,
-        html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Message:</strong></p><p>${escapeHtml(message)}</p>`,
-      }),
+    await sendEmail({
+      to: toEmail,
+      subject: `New Contact Form Message from ${escapeHtml(name)}`,
+      html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Message:</strong></p><p>${escapeHtml(message)}</p>`,
     });
     return { success: true };
   } catch {

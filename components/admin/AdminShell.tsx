@@ -17,6 +17,7 @@ const navItems = [
   { href: "/admin/dashboard/about", label: "About Page" },
   { href: "/admin/dashboard/contact", label: "Contact Info" },
   { href: "/admin/dashboard/site", label: "Site Text" },
+  { href: "/admin/dashboard/security", label: "Security" },
 ];
 
 const REFRESH_INTERVAL_MS = 20 * 60 * 60 * 1000; // 20 hours

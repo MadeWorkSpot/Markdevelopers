@@ -91,5 +91,9 @@ export function setRefreshTokenCookie(refreshToken: string) {
 }
 
 export function isProtectedRoute(pathname: string): boolean {
-  return pathname.startsWith("/admin") && pathname !== "/admin/login";
+  return (
+    pathname.startsWith("/admin") &&
+    pathname !== "/admin/login" &&
+    !pathname.startsWith("/admin/forgot")
+  );
 }

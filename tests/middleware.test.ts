@@ -60,6 +60,19 @@ describe("middleware", () => {
       const rewrittenUrl = res.headers.get("x-middleware-rewrite");
       expect(rewrittenUrl).toContain("/_not-found");
     });
+
+    it("rewrites /admin/forgot flow to /_not-found on public host", () => {
+      for (const path of ["/admin/forgot", "/admin/forgot/otp", "/admin/forgot/reset"]) {
+        const req = createRequest(
+          `http://markdev.com${path}`,
+          "markdev.com"
+        );
+        const res = middleware(req);
+        expect(res).toBeInstanceOf(NextResponse);
+        const rewrittenUrl = res.headers.get("x-middleware-rewrite");
+        expect(rewrittenUrl).toContain("/_not-found");
+      }
+    });
   });
 
   describe("admin host", () => {
@@ -83,6 +96,44 @@ describe("middleware", () => {
       const res = middleware(req);
       expect(res).toBeInstanceOf(NextResponse);
       expect(res.status).toBe(200);
+    });
+
+    it("allows /admin/forgot flow without session", () => {
+      for (const path of ["/admin/forgot", "/admin/forgot/otp", "/admin/forgot/reset"]) {
+        const req = createRequest(
+          `http://admin.markdev.com${path}`,
+          "admin.markdev.com"
+        );
+        const res = middleware(req);
+        expect(res).toBeInstanceOf(NextResponse);
+        expect(res.status).toBe(200);
+      }
+    });
+
+    it("redirects /admin/forgot to /admin/dashboard if session exists", () => {
+      const req = createRequest(
+        "http://admin.markdev.com/admin/forgot",
+        "admin.markdev.com",
+        { session: "some-session-token" }
+      );
+      const res = middleware(req);
+      expect(res).toBeInstanceOf(NextResponse);
+      expect(res.status).toBe(307);
+      const location = res.headers.get("location");
+      expect(location).toContain("/admin/dashboard");
+    });
+
+    it("redirects /admin/forgot/otp to /admin/dashboard if session exists", () => {
+      const req = createRequest(
+        "http://admin.markdev.com/admin/forgot/otp",
+        "admin.markdev.com",
+        { session: "some-session-token" }
+      );
+      const res = middleware(req);
+      expect(res).toBeInstanceOf(NextResponse);
+      expect(res.status).toBe(307);
+      const location = res.headers.get("location");
+      expect(location).toContain("/admin/dashboard");
     });
 
     it("redirects /admin/login to /admin/dashboard if session exists", () => {

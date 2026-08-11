@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useActionState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { login } from "@/actions";
 
@@ -75,6 +76,13 @@ export function LoginForm() {
       >
         {pending ? "Logging in..." : "Log in"}
       </button>
+
+      <Link
+        href="/admin/forgot"
+        className="block text-center text-sm text-zinc-400 transition-colors hover:text-zinc-200"
+      >
+        Forgot password?
+      </Link>
     </form>
   );
 }

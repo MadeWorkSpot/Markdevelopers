@@ -22,13 +22,15 @@ export function middleware(request: NextRequest) {
     }
 
     const session = request.cookies.get("session")?.value;
-    const isLoginRoute = pathname === "/admin/login";
+    // Routes reachable without a session: login and the forgot-password flow.
+    const isAuthRoute =
+      pathname === "/admin/login" || pathname.startsWith("/admin/forgot");
 
-    if (isLoginRoute && session) {
+    if (isAuthRoute && session) {
       return NextResponse.redirect(new URL("/admin/dashboard", origin));
     }
 
-    if (!isLoginRoute && !session) {
+    if (!isAuthRoute && !session) {
       return NextResponse.redirect(new URL("/admin/login", origin));
     }
 

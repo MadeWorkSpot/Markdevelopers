@@ -118,6 +118,12 @@ describe("isProtectedRoute", () => {
     expect(isProtectedRoute("/admin/login")).toBe(false);
   });
 
+  it("returns false for forgot-password flow", () => {
+    expect(isProtectedRoute("/admin/forgot")).toBe(false);
+    expect(isProtectedRoute("/admin/forgot/otp")).toBe(false);
+    expect(isProtectedRoute("/admin/forgot/reset")).toBe(false);
+  });
+
   it("returns false for non-admin routes", () => {
     expect(isProtectedRoute("/about")).toBe(false);
   });

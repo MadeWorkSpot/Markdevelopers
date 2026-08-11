@@ -44,12 +44,32 @@ test("public host cannot access /admin (rewritten to 404)", async ({ request }) 
   expect(response.status()).toBe(404);
 });
 
+test("public host cannot access the forgot-password flow (rewritten to 404)", async ({ request }) => {
+  for (const path of ["/admin/forgot", "/admin/forgot/otp", "/admin/forgot/reset"]) {
+    const response = await request.get(path, {
+      headers: { Host: "localhost:3000" },
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(404);
+  }
+});
+
 test("lookalike admin host cannot access /admin (rewritten to 404)", async ({ request }) => {
   const response = await request.get("/admin/dashboard", {
     headers: { Host: "admindashboard.evil.com" },
     maxRedirects: 0,
   });
   expect(response.status()).toBe(404);
+});
+
+test("admin host allows the forgot-password flow without a session", async ({ request }) => {
+  for (const path of ["/admin/forgot", "/admin/forgot/otp", "/admin/forgot/reset"]) {
+    const response = await request.get(path, {
+      headers: { Host: "admin.localhost:3000" },
+      maxRedirects: 0,
+    });
+    expect(response.status()).toBe(200);
+  }
 });
 
 test("admin host redirects unauthenticated admin path to login", async ({ request }) => {
