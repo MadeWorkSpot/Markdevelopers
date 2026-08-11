@@ -3,21 +3,18 @@ import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebase-admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { clearAuthCookies } from "@/lib/auth";
+import {
+  validateUploadedFile,
+  detectFileType,
+  sanitizeFileName,
+  MAX_IMAGE_SIZE,
+  MAX_VIDEO_SIZE,
+} from "@/lib/file-validation";
 
-const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif"];
-const VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-msvideo", "video/x-matroska"];
-const ALLOWED_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES];
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
-const MAX_VIDEO_SIZE = 200 * 1024 * 1024;
-const MAX_FILENAME_LENGTH = 255;
-
-export function sanitizeFileName(name: string): string {
-  return name
-    .replace(/[^\w.\-]/g, "_")
-    .replace(/\.{2,}/g, ".")
-    .replace(/^\.+/, "")
-    .slice(0, MAX_FILENAME_LENGTH);
-}
+export const ALLOWED_TYPES = [
+  "image/jpeg", "image/png", "image/gif", "image/webp", "image/avif",
+  "video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-msvideo", "video/x-matroska",
+];
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,22 +42,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: "Invalid file type. Allowed: JPEG, PNG, GIF, WebP, AVIF images and MP4, WebM video." },
-        { status: 400 }
-      );
-    }
-
-    const isVideo = VIDEO_TYPES.includes(file.type);
+    // Size + extension + MIME checks first (cheap), then magic-byte validation.
+    const isVideo = (file.type || "").startsWith("video/");
     const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
-
     if (file.size > maxSize) {
       const sizeLabel = isVideo ? "200 MB" : "10 MB";
       return NextResponse.json(
         { error: `File too large. Maximum size is ${sizeLabel}.` },
         { status: 400 }
       );
+    }
+
+    const safeName = sanitizeFileName(file.name);
+
+    // Magic-byte/content-signature validation. The client-declared type is
+    // never trusted: the bytes must match the declared format.
+    const buffer = await file.arrayBuffer();
+    const validation = validateUploadedFile(
+      { name: safeName, type: file.type, size: file.size },
+      buffer
+    );
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -84,8 +87,6 @@ export async function POST(req: NextRequest) {
     const sigBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sorted + apiSecret));
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
-    const buffer = await file.arrayBuffer();
-    const safeName = sanitizeFileName(file.name);
     const newFile = new File([buffer], safeName, { type: file.type });
 
     const uploadForm = new FormData();
@@ -116,3 +117,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
   }
 }
+
+export { detectFileType, validateUploadedFile };

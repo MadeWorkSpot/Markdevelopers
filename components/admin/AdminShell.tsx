@@ -36,7 +36,8 @@ export default function AdminShell({ children, unreadCount = 0 }: { children: Re
 
   useEffect(() => {
     startTransition(() => {
-      setSiteHost(window.location.hostname.replace(/^admin\./, ""));
+      const hostname = window.location.hostname;
+      setSiteHost(hostname.replace(/^admin-dev\./, "").replace(/^admin\./, ""));
     });
   }, []);
 

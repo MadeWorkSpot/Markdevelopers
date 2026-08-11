@@ -40,5 +40,34 @@
 			"persist": true,
 			"invocation_logs": true
 		}
+	},
+	"env": {
+		"staging": {
+			"name": "markdev-staging",
+			"services": [
+				{
+					"binding": "WORKER_SELF_REFERENCE",
+					"service": "markdev-staging"
+				}
+			],
+			"kv_namespaces": [
+				{
+					"binding": "RATE_LIMIT_KV",
+					// Staging KV namespace (created with `wrangler kv namespace create RATE_LIMIT_KV_STAGING`)
+					"id": "ea6d8200e1654cfba33b65878794b40f",
+					"remote": true
+				}
+			],
+			"vars": {
+				"PUBLIC_HOST": "dev.markdevelopers.in",
+				"ADMIN_HOST_PREFIX": "admin-dev.",
+				"ENVIRONMENT": "staging",
+				"CLOUDINARY_CLOUD_NAME": "dtr9ws0x",
+				"CLOUDINARY_API_KEY": "161842465146681"
+			},
+			"images": {
+				"binding": "IMAGES"
+			}
+		}
 	}
 }

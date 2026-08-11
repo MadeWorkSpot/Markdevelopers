@@ -1,12 +1,25 @@
 import { SignJWT, jwtVerify, importPKCS8, importX509 } from "jose";
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
-const CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL || "";
-const PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY || "";
-const SESSION_SECRET = process.env.SESSION_SECRET || "";
+// Secrets are read lazily (at call time, from process.env) rather than at
+// module load. At runtime on Cloudflare Workers, OpenNext populates process.env
+// from the worker bindings during init(); reading at call time guarantees the
+// runtime values are used and that merely importing this module never captures
+// build-time environment state.
+function getProjectId(): string {
+  return process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
+}
+function getClientEmail(): string {
+  return process.env.FIREBASE_CLIENT_EMAIL || "";
+}
+function getPrivateKeyPem(): string {
+  return process.env.FIREBASE_PRIVATE_KEY || "";
+}
+function getSessionSecret(): string {
+  return process.env.SESSION_SECRET || "";
+}
 
-const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
-const AUTH_BASE = `https://identitytoolkit.googleapis.com/v1/projects/${PROJECT_ID}`;
+const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${getProjectId()}/databases/(default)/documents`;
+const AUTH_BASE = `https://identitytoolkit.googleapis.com/v1/projects/${getProjectId()}`;
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const FIREBASE_KEYS_URL =
   "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
@@ -49,7 +62,7 @@ function normalizePem(raw: string): string {
 
 function getPrivateKey(): Promise<CryptoKey> {
   if (!privateKeyPromise) {
-    const pem = normalizePem(PRIVATE_KEY);
+    const pem = normalizePem(getPrivateKeyPem());
     privateKeyPromise = importPKCS8(pem, "RS256");
   }
   return privateKeyPromise;
@@ -67,7 +80,7 @@ async function getAccessToken(): Promise<string> {
       scope: "https://www.googleapis.com/auth/cloud-platform",
     })
       .setProtectedHeader({ alg: "RS256" })
-      .setIssuer(CLIENT_EMAIL)
+      .setIssuer(getClientEmail())
       .setAudience(TOKEN_URL)
       .setIssuedAt(now)
       .setExpirationTime("55m")
@@ -516,10 +529,11 @@ let sessionKey: CryptoKey | null = null;
 
 async function getSessionKey(): Promise<CryptoKey> {
   if (sessionKey) return sessionKey;
-  if (!SESSION_SECRET) throw new Error("SESSION_SECRET environment variable is not set.");
+  const secret = getSessionSecret();
+  if (!secret) throw new Error("SESSION_SECRET environment variable is not set.");
   sessionKey = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(SESSION_SECRET),
+    new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"]
@@ -573,15 +587,15 @@ async function createSessionCookie(
     },
     {
       issuer:
-        "https://securetoken.google.com/" + PROJECT_ID,
-      audience: PROJECT_ID,
+        "https://securetoken.google.com/" + getProjectId(),
+      audience: getProjectId(),
     }
   );
 
   const now = Math.floor(Date.now() / 1000);
   const jwt = await new SignJWT({
-    iss: `https://sessiontoken.firebase.google.com/${PROJECT_ID}`,
-    aud: PROJECT_ID,
+    iss: `https://sessiontoken.firebase.google.com/${getProjectId()}`,
+    aud: getProjectId(),
     user_id: payload.sub,
     email: payload.email,
     email_verified: payload.email_verified,
@@ -602,8 +616,8 @@ async function verifySessionCookie(
   checkRevoked?: boolean
 ): Promise<DecodedSession> {
   const { payload } = await jwtVerify(cookie, await getSessionKey(), {
-    issuer: `https://sessiontoken.firebase.google.com/${PROJECT_ID}`,
-    audience: PROJECT_ID,
+    issuer: `https://sessiontoken.firebase.google.com/${getProjectId()}`,
+    audience: getProjectId(),
   });
 
   if (checkRevoked && payload.sub) {

@@ -4,6 +4,7 @@ import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import {
   SESSION_COOKIE,
   REFRESH_TOKEN_COOKIE,
+  assertAdminEmail,
 } from "@/lib/auth";
 import AdminShell from "@/components/admin/AdminShell";
 
@@ -20,10 +21,14 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   if (sessionCookie) {
     try {
-      await adminAuth.verifySessionCookie(sessionCookie, true);
+      // Verify the session AND enforce the admin allowlist. A valid Firebase
+      // session for an account that is not on ALLOWED_ADMIN_EMAILS is denied
+      // here (defense in depth on top of requireAdmin in server actions).
+      const session = await adminAuth.verifySessionCookie(sessionCookie, true);
+      assertAdminEmail(session.email);
       sessionValid = true;
     } catch {
-      // Session invalid — try refresh below
+      // Session invalid or not an allowed admin — try refresh below
     }
   }
 

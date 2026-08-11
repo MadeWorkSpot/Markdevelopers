@@ -21,7 +21,9 @@ vi.mock("@/lib/data", () => ({
 
 vi.mock("@/lib/firebase-admin", () => ({
   adminAuth: {
-    verifySessionCookie: vi.fn().mockResolvedValue({ sub: "mock-user" }),
+    verifySessionCookie: vi
+      .fn()
+      .mockResolvedValue({ sub: "mock-user", email: "admin@example.com" }),
   },
   adminDb: {
     collection: vi.fn(),
@@ -30,14 +32,19 @@ vi.mock("@/lib/firebase-admin", () => ({
 
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
-}));
-
-vi.mock("@/lib/turnstile", () => ({
-  verifyTurnstile: vi.fn().mockResolvedValue({ success: true }),
+  getClientIpFromHeaders: vi.fn().mockResolvedValue("127.0.0.1"),
 }));
 
 vi.mock("@/lib/auth", () => ({
   clearAuthCookies: vi.fn(),
+  assertAdminEmail: vi.fn(),
+  isAdminEmail: vi.fn().mockReturnValue(true),
+  getCookieOptions: vi.fn().mockReturnValue({
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    path: "/",
+  }),
 }));
 
 import { readData, writeData } from "@/lib/data";

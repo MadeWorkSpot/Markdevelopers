@@ -26,8 +26,6 @@
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret |
 | `SESSION_SECRET` | Key for signing session JWTs (generate: `openssl rand -hex 48`) |
-| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key |
 
 ## Commands
 
@@ -40,4 +38,36 @@
 
 ## Deployment
 
-The app deploys to Cloudflare Workers via OpenNext. See `wrangler.jsonc` for configuration.
+The app deploys to Cloudflare Workers via OpenNext. See `wrangler.jsonc` (main) and
+`wrangler.admin.jsonc` (admin) for configuration.
+
+Two environments are defined using Wrangler `env` blocks:
+
+| Branch | Environment | Main worker | Admin worker | Domains |
+|---|---|---|---|---|
+| `production` | (top-level config) | `markdev` | `admin` | `markdevelopers.in` / `admindashboard.markdevelopers.in` |
+| `develop` | `staging` | `markdev-staging` | `admin-staging` | `dev.markdevelopers.in` / `admin-dev.markdevelopers.in` |
+
+Deploys are driven by GitHub Actions (`.github/workflows/ci.yml`):
+
+- Push to `develop` → build once, deploy `markdev-staging` + `admin-staging`, set their secrets.
+- Push to `production` → build once, deploy `markdev` + `admin`, set their secrets.
+
+Manual deploys:
+
+```bash
+# Production main / admin
+npx wrangler deploy --config wrangler.jsonc
+npx wrangler deploy --config wrangler.admin.jsonc
+
+# Staging main / admin
+npx wrangler deploy --config wrangler.jsonc --env staging
+npx wrangler deploy --config wrangler.admin.jsonc --env staging
+```
+
+Staging build (do this before the staging deploys above, with staging env vars):
+
+```bash
+ENVIRONMENT=staging PUBLIC_HOST=dev.markdevelopers.in ADMIN_HOST_PREFIX=admin-dev. \
+  npx opennextjs-cloudflare build
+```

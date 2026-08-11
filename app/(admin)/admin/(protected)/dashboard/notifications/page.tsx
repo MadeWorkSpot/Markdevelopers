@@ -70,7 +70,7 @@ export default async function NotificationsPage() {
                     {msg.createdAt ? <RelativeTime timestamp={msg.createdAt} /> : "Unknown date"}
                   </p>
                 </div>
-                <form action={deleteMessage.bind(null, msg.id)}>
+                <form action={async () => { await deleteMessage(msg.id); }}>
                   <button
                     type="submit"
                     className="rounded-lg border border-red-900/50 px-3 py-1.5 text-xs text-red-400 transition-colors hover:bg-red-950/50"

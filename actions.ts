@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { readData, writeData } from "@/lib/data";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import { checkRateLimit } from "@/lib/rate-limit";
-import { clearAuthCookies } from "@/lib/auth";
+import { checkRateLimit, getClientIpFromHeaders } from "@/lib/rate-limit";
+import { clearAuthCookies, getCookieOptions, assertAdminEmail, isAdminEmail } from "@/lib/auth";
 import { deleteCloudinaryResource } from "@/lib/cloudinary";
 
 const VALID_CONTENT_TYPES = [
@@ -39,7 +39,11 @@ async function requireAdmin() {
     // (e.g. after logout or password change), they cannot continue using
     // a previously-issued session cookie. This closes the window where
     // a stolen cookie remains valid after the user logs out.
-    await adminAuth.verifySessionCookie(sessionCookie, true);
+    const session = await adminAuth.verifySessionCookie(sessionCookie, true);
+    // Fail-closed admin allowlist: the authenticated Firebase account must be
+    // explicitly listed in ALLOWED_ADMIN_EMAILS. If unconfigured, no account
+    // is permitted (deny-by-default).
+    assertAdminEmail(session.email);
   } catch {
     throw new Error("Unauthorized");
   }
@@ -55,9 +59,11 @@ export async function login(_prev: unknown, formData: FormData) {
     return { error: "Email and password are required." };
   }
 
-  const rl = await checkRateLimit(`login:${email}`);
-  if (!rl.allowed) {
-    return { error: `Too many attempts. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
+  const ip = await getClientIpFromHeaders();
+  const rlEmail = await checkRateLimit(`login:${email}`);
+  const rlIp = await checkRateLimit(`login-ip`, ip, 20);
+  if (!rlEmail.allowed || !rlIp.allowed) {
+    return { error: `Too many attempts. Try again in ${Math.ceil(Math.max(rlEmail.retryAfterMs ?? 0, rlIp.retryAfterMs ?? 0) / 60000)} minutes.` };
   }
 
   let sessionCookie: string;
@@ -79,6 +85,13 @@ export async function login(_prev: unknown, formData: FormData) {
       return { error: "Invalid email or password." };
     }
 
+    // Admin allowlist: only explicitly-listed accounts may sign in. A valid
+    // credential for a non-listed account is indistinguishable from a wrong
+    // one to the caller.
+    if (!isAdminEmail(data.email)) {
+      return { error: "Invalid email or password." };
+    }
+
     sessionCookie = await adminAuth.createSessionCookie(data.idToken, {
       expiresIn: 60 * 60 * 24 * 1000,
     });
@@ -87,20 +100,15 @@ export async function login(_prev: unknown, formData: FormData) {
     return { error: "Authentication failed." };
   }
 
+  const cookieOptions = getCookieOptions();
   const cookieStore = await cookies();
   cookieStore.set("session", sessionCookie, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production" && !process.env.PUBLIC_HOST_DEV,
-    sameSite: "strict",
-    path: "/",
+    ...cookieOptions,
     maxAge: 60 * 60 * 24,
   });
   if (refreshToken) {
     cookieStore.set("refresh_token", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production" && !process.env.PUBLIC_HOST_DEV,
-      sameSite: "strict",
-      path: "/",
+      ...cookieOptions,
       maxAge: 60 * 60 * 24 * 30,
     });
   }
@@ -142,9 +150,12 @@ export async function submitContact(_prev: unknown, formData: FormData) {
       return { error: "Message must be 5000 characters or less." };
     }
 
-    const rl = await checkRateLimit(`contact:${email}`);
-    if (!rl.allowed) {
-      return { error: `Too many messages. Try again in ${Math.ceil((rl.retryAfterMs ?? 0) / 60000)} minutes.` };
+    // Per-email AND per-IP limits — rotating addresses or IPs cannot bypass.
+    const ip = await getClientIpFromHeaders();
+    const rlEmail = await checkRateLimit(`contact:${email}`);
+    const rlIp = await checkRateLimit(`contact-ip`, ip, 10);
+    if (!rlEmail.allowed || !rlIp.allowed) {
+      return { error: `Too many messages. Try again in ${Math.ceil(Math.max(rlEmail.retryAfterMs ?? 0, rlIp.retryAfterMs ?? 0) / 60000)} minutes.` };
     }
 
     const db = adminDb;
@@ -164,6 +175,8 @@ export async function submitContact(_prev: unknown, formData: FormData) {
     const contactData = contactDoc.data();
     const toEmail = (contactData?.email as string) || "info@markdevelopers.in";
 
+    // User content is escaped before being interpolated into the HTML email so
+    // a visitor cannot inject markup/phishing content into the admin's inbox.
     await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -173,14 +186,33 @@ export async function submitContact(_prev: unknown, formData: FormData) {
       body: JSON.stringify({
         from: "Mark Developers <noreply@markdevelopers.in>",
         to: toEmail,
-        subject: `New Contact Form Message from ${name}`,
-        html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong></p><p>${message}</p>`,
+        subject: `New Contact Form Message from ${escapeHtml(name)}`,
+        html: `<p><strong>Name:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Message:</strong></p><p>${escapeHtml(message)}</p>`,
       }),
     });
     return { success: true };
   } catch {
     return { error: "Failed to send message. Please try again." };
   }
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => {
+    switch (c) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return c;
+    }
+  });
 }
 
 export async function getUnreadCount() {
@@ -197,8 +229,13 @@ export async function getUnreadCount() {
   }
 }
 
+const MESSAGE_ID_PATTERN = /^[A-Za-z0-9_-]{1,100}$/;
+
 export async function markMessagesAsRead() {
   await requireAdmin();
+  const ip = await getClientIpFromHeaders();
+  const rl = await checkRateLimit(`mark-read`, ip, 60);
+  if (!rl.allowed) return;
   const snapshot = await adminDb
     .collection("messages")
     .where("isRead", "==", false)
@@ -282,6 +319,12 @@ export async function updateArrayItem(
 
 export async function deleteMessage(messageId: string) {
   await requireAdmin();
+  if (typeof messageId !== "string" || !MESSAGE_ID_PATTERN.test(messageId)) {
+    return { success: false, error: "Invalid message ID" };
+  }
+  const ip = await getClientIpFromHeaders();
+  const rl = await checkRateLimit(`delete-message`, ip, 60);
+  if (!rl.allowed) return { success: false, error: "Too many requests. Try again later." };
   await adminDb.collection("messages").doc(messageId).delete();
   revalidatePath("/admin/dashboard/notifications");
   revalidatePath("/admin", "layout");

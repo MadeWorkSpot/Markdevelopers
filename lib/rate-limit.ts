@@ -10,6 +10,8 @@
  * The KV entry has a TTL of WINDOW_MS + buffer, so it auto-cleans.
  */
 
+import { headers } from "next/headers";
+
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const WINDOW_BUFFER_MS = 60 * 1000; // 1 minute buffer for KV TTL
@@ -134,6 +136,20 @@ export function getClientIp(request: Request): string {
     request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("x-real-ip") ??
+    ""
+  );
+}
+
+/**
+ * Client IP for Server Actions, which have no Request object. Reads the same
+ * proxy headers via the request headers exposed by Next.js.
+ */
+export async function getClientIpFromHeaders(): Promise<string> {
+  const headersList = await headers();
+  return (
+    headersList.get("cf-connecting-ip") ??
+    headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    headersList.get("x-real-ip") ??
     ""
   );
 }

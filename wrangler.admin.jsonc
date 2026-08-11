@@ -37,5 +37,30 @@
       "persist": true,
       "invocation_logs": true
     }
+  },
+  "env": {
+    "staging": {
+      "name": "admin-staging",
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "admin-staging"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "RATE_LIMIT_KV",
+          "id": "ea6d8200e1654cfba33b65878794b40f"
+        }
+      ],
+      "vars": {
+        "PUBLIC_HOST": "dev.markdevelopers.in",
+        "ADMIN_HOST_PREFIX": "admin-dev.",
+        "ENVIRONMENT": "staging"
+      },
+      "images": {
+        "binding": "IMAGES"
+      }
+    }
   }
 }

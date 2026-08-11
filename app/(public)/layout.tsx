@@ -2,6 +2,12 @@ import { Suspense } from "react";
 import NavbarWrapper from "@/components/NavbarWrapper";
 import Footer from "@/components/Footer";
 
+// Public pages render navbar/footer content from Firestore, so they are always
+// server-rendered at request time in the worker (where the service-account
+// credentials exist). This keeps builds free of production credentials and
+// means content edits publish without a redeploy.
+export const dynamic = "force-dynamic";
+
 function NavbarSkeleton() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black">

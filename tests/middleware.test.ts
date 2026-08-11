@@ -22,6 +22,7 @@ describe("middleware", () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
     vi.stubEnv("ADMIN_HOST_PREFIX", "admin.");
+    vi.stubEnv("PUBLIC_HOST", "markdev.com");
   });
 
   describe("public site (non-admin host)", () => {

@@ -8,19 +8,16 @@ if (process.env.NODE_ENV === "production" && !process.env.PUBLIC_HOST) {
  * SECURITY HARDENED — Next.js Configuration
  *
  * Changes from baseline:
- * - CSP switched to Content-Security-Policy-Report-Only so violations are logged
- *   without breaking the app. To enforce, rename the header key below.
+ * - Content-Security-Policy is ENFORCED (not report-only) with a strict policy:
+ *   default-src 'self', no 'unsafe-eval', object-src 'none', frame-ancestors 'none'.
+ *   See the header block below for the full directive list.
  * - Added X-DNS-Prefetch-Control, X-Download-Options, X-Permitted-Cross-Domain-Policies.
  * - Added immutable cache headers for Next.js static assets.
  * - Added security headers for API routes separately.
  *
- * ── HOW TO ENFORCE CSP ──────────────────────────────────────────────────────
- * After validating report-only logs show no false positives:
- *   1. Change header key from "Content-Security-Policy-Report-Only"
- *      to "Content-Security-Policy".
- *   2. Remove the "-Report-Only" header entry entirely.
- *   3. Optionally add a report-uri directive for automated monitoring.
- * ─────────────────────────────────────────────────────────────────────────────
+ * NOTE: script-src includes 'unsafe-inline' because Next.js App Router injects
+ * inline hydration bootstrap scripts. Switching to a nonce-based policy is a
+ * follow-up hardening task.
  */
 
 const nextConfig: NextConfig = {
@@ -97,9 +94,8 @@ const nextConfig: NextConfig = {
 
               // Scripts: same-origin + inline (required by Next.js hydration/RSC).
               // Cloudflare Web Analytics beacon (beacon.min.js).
-              // Cloudflare Turnstile CAPTCHA widget (challenges.cloudflare.com).
               // NOTE: No 'unsafe-eval' — Next.js App Router does not need it.
-              "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://challenges.cloudflare.com",
+              "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
 
               // Styles: same-origin + inline (required by Tailwind + Next.js CSS injection).
               "style-src 'self' 'unsafe-inline'",
@@ -117,15 +113,10 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
 
               // Connections: Firebase Auth, Firestore, Google OAuth, Cloudflare Analytics.
-              // Cloudflare Turnstile verification endpoint.
               // 'self' covers Next.js API routes and server actions.
               // Do NOT use 'connect-src none' — it would break Firebase, revalidation,
               // and any client-side data fetching.
-              "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.google.com https://oauth2.googleapis.com https://www.googleapis.com https://static.cloudflareinsights.com https://challenges.cloudflare.com",
-
-              // Frame: Cloudflare Turnstile renders its widget inside an iframe.
-              // Restricted to the Turnstile origin only — no other framing allowed.
-              "frame-src https://challenges.cloudflare.com",
+              "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.google.com https://oauth2.googleapis.com https://www.googleapis.com https://static.cloudflareinsights.com",
 
               // Block all plugins (Flash, Java, etc.) — OWASP A03:2021.
               "object-src 'none'",

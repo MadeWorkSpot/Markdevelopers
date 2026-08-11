@@ -1,19 +1,18 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { isAdminHost, normalizeHost } from "@/lib/hosts";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   // Use only the Host header for security decisions — x-forwarded-host can be
   // spoofed by clients and must not be trusted for access control or redirects.
   const hostHeader = request.headers.get("host") || "";
-  const host = hostHeader.split(":")[0];
+  const host = normalizeHost(hostHeader);
 
-  const ADMIN_PREFIX =
-    host.includes("localhost") || host.includes("127.0.0.1")
-      ? process.env.ADMIN_HOST_PREFIX_DEV || "admin."
-      : process.env.ADMIN_HOST_PREFIX || "admindashboard.";
-
-  const isAdmin = host.startsWith(ADMIN_PREFIX);
+  // Strict exact-match check: only the configured admin subdomain is treated
+  // as the admin host (see lib/auth.ts isAdminHost). Lookalike hosts such as
+  // `admindashboard.evil.com` are treated as public.
+  const isAdmin = isAdminHost(host);
 
   if (isAdmin) {
     const origin = `${request.nextUrl.protocol}//${hostHeader}`;

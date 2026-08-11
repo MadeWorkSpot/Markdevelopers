@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import NavbarWrapper from "@/components/NavbarWrapper";
 import Footer from "@/components/Footer";
 
+export const dynamic = "force-dynamic";
+
 export default function NotFound() {
   return (
     <>
